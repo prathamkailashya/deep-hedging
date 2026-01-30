@@ -1,0 +1,400 @@
+{
+  "metadata": {
+    "generated": "2026-01-28",
+    "total_pages_processed": 180,
+    "papers_identified": 7
+  },
+  "papers": [
+    {
+      "id": "buehler2019",
+      "title": "Deep Hedging",
+      "authors": ["Hans Buehler", "Lukas Gonon", "Josef Teichmann", "Ben Wood"],
+      "year": 2018,
+      "source": "arXiv:1802.03042v1",
+      "pages_in_reference": "001-030",
+      "affiliation": "JP Morgan (authors note opinions are their own)",
+      "date": "February 12, 2018",
+      "abstract": "Framework for hedging portfolios of derivatives in the presence of market frictions such as transaction costs, market impact, liquidity constraints or risk limits using modern deep reinforcement machine learning methods.",
+      "key_methodology": {
+        "approach": "Semi-recurrent reinforcement learning",
+        "policy_representation": "δ_k = F_θ(I_0, ..., I_k, δ_{k-1})",
+        "network_architecture": {
+          "layers": 3,
+          "dimensions": "N_0 = 2d, N_1 = N_2 = d + 15, N_3 = d",
+          "activation": "ReLU",
+          "normalization": "Batch Normalization"
+        },
+        "optimizer": "Adam",
+        "learning_rate": 0.005,
+        "batch_size": 256,
+        "risk_measures": ["Entropic Risk", "CVaR", "Optimized Certainty Equivalent"]
+      },
+      "key_equations": {
+        "pnl": "P&L = -Z + Σ δ_k(S_{k+1} - S_k) - Σ κ|δ_{k+1} - δ_k|",
+        "entropic_risk": "ρ(X) = (1/λ) log E[exp(-λX)]",
+        "indifference_price": "q(Z) = (1/λ) log(sup_{δ∈H} E[U(-Z + (δ·S)_T + C_T(δ))] / sup_{δ∈H} E[U((δ·S)_T + C_T(δ))])",
+        "cvar": "ρ(X) = (1/(1-α)) ∫_0^{1-α} VaR_γ(X) dγ"
+      },
+      "market_model": {
+        "type": "Heston Stochastic Volatility",
+        "parameters": {
+          "S0": 100,
+          "v0": 0.04,
+          "kappa": 1.0,
+          "theta": 0.04,
+          "sigma": 0.2,
+          "rho": -0.7,
+          "r": 0.0
+        },
+        "time_grid": {
+          "n_steps": 30,
+          "T": "30/365"
+        }
+      },
+      "datasets": {
+        "train": 90000,
+        "validation": 10000,
+        "test": 100000
+      },
+      "key_claims": [
+        "Algorithm is model-free and greek-free",
+        "Scales to high-dimensional hedging problems",
+        "Outperforms complete market solution under transaction costs",
+        "Computational performance invariant to portfolio size",
+        "Close-to-optimal strategies using neural network approximation"
+      ],
+      "msc_classification": "91G60, 65K99"
+    },
+    {
+      "id": "kozyra2018",
+      "title": "Deep learning approach to hedging",
+      "authors": ["Michal Kozyra (Candidate Number: 1023650)"],
+      "year": 2018,
+      "source": "University of Oxford MSc Thesis",
+      "pages_in_reference": "065-106",
+      "degree": "MSc in Mathematical and Computational Finance",
+      "date": "June 21, 2018",
+      "abstract": "Application of deep learning to hedging derivatives under market frictions. Focus on RNN/LSTM architectures with two-stage training.",
+      "key_methodology": {
+        "approach": "RNN/LSTM with Two-Stage Training",
+        "architectures": ["Basic RNN", "LSTM", "Extended Network"],
+        "extended_network_layers": [1, 50, 50, 30, 1, 50, 50, 30, 1],
+        "two_stage_training": {
+          "stage1": {
+            "objective": "CVaR_α(P&L)",
+            "purpose": "Frictionless pretraining for tail risk"
+          },
+          "stage2": {
+            "objective": "Entropic(P&L) + γΣ|δ_{k+1} - δ_k| + ν·d(δ, H_c)",
+            "purpose": "Fine-tuning with transaction cost awareness",
+            "gamma": 0.001,
+            "nu": 100000000,
+            "band_width": 0.15
+          }
+        },
+        "critical_observation": "Delta bounding with tanh prevents training explosion"
+      },
+      "hyperparameters": {
+        "hidden_size": 50,
+        "num_layers": 2,
+        "batch_size": 200,
+        "learning_rate": 0.0005,
+        "delta_scale": 1.5
+      },
+      "key_claims": [
+        "LSTM outperforms simple RNN for hedging",
+        "Two-stage training improves convergence",
+        "No-transaction band reduces turnover while maintaining risk",
+        "Delta bounding is critical for stable training"
+      ],
+      "code_framework": "TensorFlow 1.x"
+    },
+    {
+      "id": "lutkebohmert2021",
+      "title": "Robust deep hedging",
+      "authors": ["Eva Lütkebohmert", "Thorsten Schmidt", "Julian Sester"],
+      "year": 2021,
+      "source": "arXiv:2106.10024v2",
+      "pages_in_reference": "154-170",
+      "affiliations": [
+        "Department of Quantitative Finance, University of Freiburg",
+        "Mathematical Institute, University of Freiburg",
+        "NTU Singapore"
+      ],
+      "date": "November 30, 2021",
+      "abstract": "Pricing and hedging under parameter uncertainty for generalized affine processes including Black-Scholes and CEV models. Links nonlinear expectation to Kolmogorov equation for fast numerical pricing in robust framework.",
+      "key_methodology": {
+        "approach": "Distributionally Robust Optimization (DRO)",
+        "uncertainty_class": "Generalized affine processes",
+        "framework": "Knightian uncertainty",
+        "key_insight": "Deep hedging under parameter uncertainty via nonlinear expectation"
+      },
+      "key_equations": {
+        "robust_pricing": "Based on variational form of Kolmogorov equation",
+        "uncertainty_set": "Parameter uncertainty in affine process class"
+      },
+      "key_claims": [
+        "Robust deep hedging outperforms standard approaches in volatile periods",
+        "Method handles parameter uncertainty explicitly",
+        "Applicable to Black-Scholes, CEV, and affine models"
+      ],
+      "jel_classification": "C02, C45, G13"
+    },
+    {
+      "id": "abijaber2025",
+      "title": "Hedging with memory: shallow and deep learning with signatures",
+      "authors": ["Eduardo Abi Jaber", "Louis-Amand Gérard"],
+      "year": 2025,
+      "source": "arXiv:2508.02759v1",
+      "pages_in_reference": "033-064",
+      "affiliations": ["École Polytechnique, CMAP", "Université Paris 1 Panthéon-Sorbonne, CES", "Gefip"],
+      "date": "August 10, 2025",
+      "abstract": "Investigation of path signatures in machine learning for hedging exotic derivatives under non-Markovian stochastic volatility models. Shows signatures outperform LSTMs with orders of magnitude less training compute.",
+      "key_methodology": {
+        "approach": "Path Signatures + Neural Networks",
+        "models_compared": ["Signature Neural Network (SNN)", "LSTM", "Log-Signature"],
+        "key_insight": "Signatures provide universal representation for path-dependent payoffs without recurrence"
+      },
+      "market_models": ["Heston", "Shifted Fractional Bergomi (rough volatility)"],
+      "key_claims": [
+        "Signatures outperform LSTMs with less training compute",
+        "Calibrated signature volatility model yields accurate hedging",
+        "Effective for exotic path-dependent derivatives"
+      ],
+      "msc_classification": "60L10, 91G20, 91G60"
+    },
+    {
+      "id": "sigformer2023",
+      "title": "SigFormer: Signature Transformers for Deep Hedging",
+      "authors": ["Unknown"],
+      "year": 2023,
+      "source": "ICAIF '23, November 27-29, Brooklyn, NY, USA",
+      "pages_in_reference": "115-128",
+      "abstract": "Combines path signatures with Transformer attention for deep hedging. Uses self-attention on signature terms at different truncation orders.",
+      "key_methodology": {
+        "approach": "Signature + Transformer hybrid",
+        "architecture": "Multi-layer attention on Sig^1(X), Sig^2(X), ..., Sig^J(X) terms",
+        "key_insight": "Treats signature terms individually with different attention weights"
+      },
+      "experiments": {
+        "market_model": "Rough Bergomi (rBergomi)",
+        "hurst_parameter": "H varies",
+        "data": "S&P500 index options backtest"
+      },
+      "key_claims": [
+        "SigFormer outperforms semi-recurrent RNN approach",
+        "Effective for non-Markovian rough volatility",
+        "Parallelizable unlike RNNs"
+      ]
+    },
+    {
+      "id": "neagu2025",
+      "title": "Deep Reinforcement Learning Algorithms for Option Hedging",
+      "authors": ["Andrei Neagu", "Frédéric Godin", "Leila Kosseim"],
+      "year": 2025,
+      "source": "arXiv:2504.05521v2",
+      "pages_in_reference": "120-128",
+      "affiliations": ["Concordia University, Montréal, Canada"],
+      "date": "April 17, 2025",
+      "abstract": "Comprehensive comparison of 8 DRL algorithms for dynamic hedging: MCPG, PPO, TD3, DQL, DDPG, Dueling DQL, DD DQL, Double DQL. Uses GJR-GARCH(1,1) market model.",
+      "key_methodology": {
+        "algorithms_compared": ["MCPG", "PPO", "TD3", "DQL", "DDPG", "Dueling DQL", "DD DQL", "Double DQL"],
+        "market_model": "GJR-GARCH(1,1)",
+        "metric": "Root Semi-Quadratic Penalty (RSQP)"
+      },
+      "hyperparameters": {
+        "learning_rates": [0.001, 0.0001, 0.00001],
+        "batch_sizes": [64, 128, 256],
+        "hidden_layers": [2, 3, 4],
+        "hidden_sizes": [64, 128, 256]
+      },
+      "key_claims": [
+        "MCPG obtains best performance overall",
+        "PPO second best with good stability",
+        "MCPG only algorithm to outperform BS delta baseline",
+        "All experiments on Nvidia A100 GPU"
+      ]
+    },
+    {
+      "id": "huang2025",
+      "title": "Deep Hedging Under Market Frictions: A Comparison of DRL Models for Options Hedging with Impact and Transaction Costs",
+      "authors": ["Eric Huang", "Yuri Lawryshyn"],
+      "year": 2025,
+      "source": "J. Risk Financial Manag. 2025, 18, 497",
+      "pages_in_reference": "129-153",
+      "affiliations": ["University of Toronto"],
+      "date": "Published September 5, 2025",
+      "doi": "10.3390/jrfm18090497",
+      "abstract": "Investigates RL algorithms for hedging under realistic market frictions including permanent market impact, execution slippage, and transaction costs. Compares DDPG, TD3, and SAC.",
+      "key_methodology": {
+        "approach": "Deep RL with Market Impact Modeling",
+        "algorithms": ["DDPG", "TD3", "SAC"],
+        "frictions_modeled": ["Transaction costs", "Execution slippage", "Permanent market impact", "Temporary market impact"],
+        "market_impact_model": "M(A_t) = sign(A_t) * Y * β * sqrt(|A_t|/V), Y ~ clip(N(0,1), -1, 1)"
+      },
+      "experiments": {
+        "market_model": "GBM with market impact",
+        "S0": 100,
+        "sigma": 0.2,
+        "mu": 0.05,
+        "time_to_expiry": "21 trading days",
+        "paths": 20000
+      },
+      "key_claims": [
+        "TD3 and SAC outperform BS delta hedging by 2/3 in expected losses",
+        "SAC achieves 50% reduction in CVaR",
+        "TD3 best for low-friction environments",
+        "SAC best for high-impact environments"
+      ]
+    }
+  ],
+  "methods_extracted": {
+    "neural_architectures": [
+      {
+        "name": "Semi-Recurrent Network (Buehler)",
+        "source": "buehler2019",
+        "page": 20,
+        "description": "Per-timestep MLP with shared weights, previous delta as input",
+        "formula": "δ_k = F_θ(I_k, δ_{k-1})"
+      },
+      {
+        "name": "LSTM Hedger (Kozyra)",
+        "source": "kozyra2018",
+        "page": 75,
+        "description": "Multi-layer LSTM with delta bounding via tanh",
+        "formula": "δ_k = δ_max · tanh(LSTM(x_k))"
+      },
+      {
+        "name": "Extended Network (Kozyra)",
+        "source": "kozyra2018",
+        "page": 80,
+        "description": "Deep feedforward with bottleneck layers",
+        "layers": [1, 50, 50, 30, 1, 50, 50, 30, 1]
+      }
+    ],
+    "risk_measures": [
+      {
+        "name": "Entropic Risk Measure",
+        "source": "buehler2019",
+        "page": 10,
+        "formula": "ρ_λ(X) = (1/λ) log E[exp(-λX)]",
+        "properties": ["Convex", "Cash-invariant", "Monotone"]
+      },
+      {
+        "name": "Conditional Value-at-Risk (CVaR)",
+        "source": "buehler2019",
+        "page": 20,
+        "formula": "CVaR_α(X) = (1/(1-α)) ∫_0^{1-α} VaR_γ(X) dγ",
+        "properties": ["Coherent", "Sub-additive", "Tail-focused"]
+      },
+      {
+        "name": "Optimized Certainty Equivalent",
+        "source": "buehler2019",
+        "page": 10,
+        "formula": "ρ(X) = inf_{w∈R} {w + E[ℓ(-X - w)]}",
+        "properties": ["Generalizes entropic risk", "Convex"]
+      }
+    ],
+    "training_protocols": [
+      {
+        "name": "Two-Stage Training",
+        "source": "kozyra2018",
+        "page": 85,
+        "stage1": "CVaR pretraining (frictionless)",
+        "stage2": "Entropic + trading penalty + band penalty",
+        "hyperparams": {
+          "gamma": 0.001,
+          "nu": 1e8,
+          "band_width": 0.15
+        }
+      },
+      {
+        "name": "Single-Stage Entropic",
+        "source": "buehler2019",
+        "page": 20,
+        "objective": "min_θ E[exp(-λ · P&L_θ)]"
+      }
+    ],
+    "market_models": [
+      {
+        "name": "Heston Stochastic Volatility",
+        "source": "buehler2019",
+        "equations": {
+          "price": "dS_t = rS_t dt + √v_t S_t dW_t^S",
+          "variance": "dv_t = κ(θ - v_t)dt + σ√v_t dW_t^v",
+          "correlation": "corr(W^S, W^v) = ρ"
+        }
+      },
+      {
+        "name": "Black-Scholes (baseline)",
+        "source": "buehler2019",
+        "equations": {
+          "price": "dS_t = rS_t dt + σS_t dW_t",
+          "delta": "Δ = N(d_1)"
+        }
+      }
+    ],
+    "dro_methods": [
+      {
+        "name": "Robust Deep Hedging",
+        "source": "lutkebohmert2021",
+        "page": 154,
+        "uncertainty": "Parameter uncertainty in affine process class",
+        "approach": "Worst-case optimization over uncertainty set"
+      }
+    ]
+  },
+  "algorithms_pseudocode": {
+    "deep_hedging_training": {
+      "source": "buehler2019",
+      "page": 20,
+      "steps": [
+        "1. Generate N sample paths from market model",
+        "2. For each path, compute features I_k at each timestep",
+        "3. Forward pass: δ_k = F_θ(I_k, δ_{k-1}) for k=0,...,n-1",
+        "4. Compute P&L = -Z + Σ δ_k(S_{k+1} - S_k) - costs",
+        "5. Compute loss J(θ) = E[exp(-λ · P&L)]",
+        "6. Backpropagate and update θ using Adam"
+      ]
+    },
+    "two_stage_training": {
+      "source": "kozyra2018",
+      "page": 85,
+      "steps": [
+        "Stage 1:",
+        "  1. Train model to minimize CVaR_α(P&L)",
+        "  2. Save reference deltas δ*",
+        "Stage 2:",
+        "  1. Freeze lower layers (optional)",
+        "  2. Minimize: Entropic(P&L) + γ·TradingCost + ν·BandViolation",
+        "  3. BandViolation = max(0, |δ - δ*| - band_width)"
+      ]
+    }
+  },
+  "hyperparameter_ranges": {
+    "buehler2019": {
+      "learning_rate": 0.005,
+      "batch_size": 256,
+      "lambda_risk": [0.1, 1.0, 10.0],
+      "transaction_cost": [0, 0.001, 0.01]
+    },
+    "kozyra2018": {
+      "learning_rate": 0.0005,
+      "batch_size": 200,
+      "hidden_size": 50,
+      "num_layers": 2,
+      "gamma": 0.001,
+      "nu": 1e8,
+      "band_width": 0.15,
+      "delta_scale": 1.5
+    }
+  },
+  "benchmark_datasets": [
+    {
+      "name": "Heston Synthetic",
+      "source": "buehler2019",
+      "parameters": "S0=100, v0=0.04, κ=1, θ=0.04, σ=0.2, ρ=-0.7",
+      "sizes": {"train": 90000, "val": 10000, "test": 100000}
+    }
+  ]
+}

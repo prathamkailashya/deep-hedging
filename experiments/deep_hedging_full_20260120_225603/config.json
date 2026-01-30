@@ -1,0 +1,51 @@
+{
+  "market": {
+    "n_steps": 30,
+    "T": 0.0821917808219178,
+    "S0": 100.0,
+    "v0": 0.04,
+    "r": 0.0,
+    "kappa": 1.0,
+    "theta": 0.04,
+    "sigma": 0.2,
+    "rho": -0.7,
+    "K": 100.0,
+    "cost_multiplier": 0.0
+  },
+  "training": {
+    "n_train": 90000,
+    "n_val": 10000,
+    "n_test": 100000,
+    "batch_size": 256,
+    "learning_rate": 0.005,
+    "n_epochs": 100,
+    "lambda_risk": 1.0,
+    "cvar_alpha": 0.95,
+    "patience": 10,
+    "min_delta": 1e-06,
+    "device": "cpu",
+    "seed": 42
+  },
+  "kozyra": {
+    "hidden_size": 50,
+    "num_layers": 2,
+    "batch_size": 200,
+    "learning_rate": 0.0005,
+    "gamma": 0.001,
+    "nu": 100000000.0,
+    "band_width": 0.15,
+    "layers": [
+      1,
+      50,
+      50,
+      30,
+      1,
+      50,
+      50,
+      30,
+      1
+    ]
+  },
+  "experiment_name": "deep_hedging",
+  "save_dir": "experiments"
+}

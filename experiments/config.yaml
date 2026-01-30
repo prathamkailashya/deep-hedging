@@ -1,0 +1,69 @@
+# Deep Hedging Experiment Configuration
+# Based on Buehler et al. (Deep Hedging) Section 5
+
+# Market parameters
+market:
+  # Time grid: n=30, T=30/365
+  n_steps: 30
+  T: 0.0822  # 30/365
+  
+  # Initial conditions
+  S0: 100.0
+  K: 100.0  # ATM option
+  r: 0.0    # Risk-free rate
+  
+  # Heston model parameters
+  v0: 0.04      # Initial variance (σ² = 0.2²)
+  kappa: 1.0    # Mean reversion speed
+  theta: 0.04   # Long-term variance
+  sigma: 0.2    # Vol of vol
+  rho: -0.7     # Correlation
+  
+  # Transaction costs
+  cost_multiplier: 0.0  # Set to 0.001 for transaction cost experiments
+
+# Training parameters (Buehler et al.)
+training:
+  # Dataset sizes
+  n_train: 90000
+  n_val: 10000
+  n_test: 100000
+  
+  # Optimization
+  batch_size: 256
+  learning_rate: 0.005
+  n_epochs: 100
+  
+  # Risk parameters
+  lambda_risk: 1.0  # Entropic risk aversion
+  cvar_alpha: 0.95  # CVaR confidence level
+  
+  # Early stopping
+  patience: 10
+  min_delta: 0.000001
+  
+  # Reproducibility
+  seed: 42
+  device: "cpu"  # or "cuda"
+
+# Kozyra model parameters
+kozyra:
+  # RNN architecture
+  hidden_size: 50
+  num_layers: 2
+  
+  # Training
+  batch_size: 200
+  learning_rate: 0.0005
+  
+  # Two-stage training
+  gamma: 0.001       # Transaction cost penalty
+  nu: 100000000      # No-transaction band penalty (10^8)
+  band_width: 0.15   # No-transaction band half-width
+  
+  # Extended network architecture
+  layers: [1, 50, 50, 30, 1, 50, 50, 30, 1]
+
+# Experiment settings
+experiment_name: "deep_hedging_replication"
+save_dir: "experiments"

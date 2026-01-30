@@ -1,0 +1,7 @@
+Strategy,vs,Mean Diff,CI Lower,CI Upper,t-statistic,p-value,Significant (5%)
+Deep Hedging,BS Delta,0.329411,-0.335580,1.018125,0.963810,0.335153,False
+Kozyra RNN,BS Delta,0.001089,-0.006916,0.009421,0.258550,0.795985,False
+Kozyra LSTM,BS Delta,0.002168,-0.003064,0.007800,0.765266,0.444122,False
+Leland,BS Delta,-0.000145,-0.000574,0.000273,-0.649312,0.516144,False
+Whalley-Wilmott,BS Delta,-0.010498,-0.048845,0.029427,-0.511901,0.608726,False
+No Hedge,BS Delta,-0.014129,-0.057245,0.030347,-0.609560,0.542160,False

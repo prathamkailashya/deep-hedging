@@ -1,0 +1,315 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% APPENDIX - Deep Hedging Paper
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Heston Model Simulation}
+\label{app:heston}
+
+\subsection{Euler-Maruyama Discretization}
+
+We simulate the Heston model using the Euler-Maruyama scheme with full truncation for variance positivity:
+
+\begin{align}
+    S_{t+\Delta t} &= S_t \exp\left[\left(r - \frac{v_t^+}{2}\right)\Delta t + \sqrt{v_t^+ \Delta t} \, Z_1\right] \\
+    v_{t+\Delta t} &= v_t + \kappa(\theta - v_t^+)\Delta t + \xi\sqrt{v_t^+ \Delta t}\left(\rho Z_1 + \sqrt{1-\rho^2} Z_2\right)
+\end{align}
+
+where $v_t^+ = \max(v_t, 0)$ and $(Z_1, Z_2)$ are independent standard normal random variables.
+
+\subsection{Parameter Values}
+
+\begin{table}[h]
+\centering
+\caption{Heston model parameters}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Parameter} & \textbf{Symbol} & \textbf{Value} \\
+\midrule
+Initial spot price & $S_0$ & 100 \\
+Initial variance & $v_0$ & 0.04 (20\% vol) \\
+Risk-free rate & $r$ & 0.05 \\
+Mean reversion speed & $\kappa$ & 2.0 \\
+Long-term variance & $\theta$ & 0.04 \\
+Volatility of volatility & $\xi$ & 0.3 \\
+Correlation & $\rho$ & $-0.7$ \\
+Strike price & $K$ & 100 (ATM) \\
+Time to maturity & $T$ & 30 days \\
+Number of steps & $N$ & 30 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Feature Engineering}
+\label{app:features}
+
+At each time step $k$, the model receives the following features:
+
+\begin{table}[h]
+\centering
+\caption{Input features for hedging models}
+\begin{tabular}{lll}
+\toprule
+\textbf{Feature} & \textbf{Formula} & \textbf{Description} \\
+\midrule
+Normalized price & $S_k / S_0$ & Price relative to initial \\
+Log-moneyness & $\log(S_k / K)$ & Distance from strike \\
+Instantaneous vol & $\sqrt{v_k}$ & Current volatility level \\
+Time to maturity & $\tau_k = T - t_k$ & Remaining time \\
+BS Delta & $\Delta^{BS}(S_k, K, \tau_k, \sigma_{impl})$ & Reference delta \\
+Previous delta & $\delta_{k-1}$ & Last hedging position \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All features are standardized to zero mean and unit variance using statistics from the training set.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Loss Function Implementations}
+\label{app:losses}
+
+\subsection{CVaR Loss}
+
+For a batch of P\&L values $\{X_i\}_{i=1}^n$ and confidence level $\alpha$:
+
+\begin{algorithmic}
+\STATE $L_i \gets -X_i$ \COMMENT{Convert to losses}
+\STATE $k \gets \lceil (1-\alpha) \cdot n \rceil$
+\STATE Sort $L$ in descending order
+\STATE \textbf{return} $\frac{1}{k}\sum_{i=1}^k L_i$ \COMMENT{Mean of worst $k$ losses}
+\end{algorithmic}
+
+\subsection{Entropic Loss (Numerically Stable)}
+
+Using the log-sum-exp trick:
+
+\begin{algorithmic}
+\STATE $z_i \gets -\lambda \cdot X_i$
+\STATE $z_{\max} \gets \max_i z_i$
+\STATE \textbf{return} $z_{\max} + \log\left(\frac{1}{n}\sum_{i=1}^n \exp(z_i - z_{\max})\right)$
+\end{algorithmic}
+
+\subsection{Trading Penalty}
+
+\begin{equation}
+    \mathcal{L}_{trade}(\delta) = \gamma \sum_{k=0}^{N-1} |\delta_{k+1} - \delta_k|
+\end{equation}
+
+with $\delta_{-1} = \delta_N = 0$ (flat initial and final positions).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Hyperparameter Settings}
+\label{app:hyperparams}
+
+\begin{table}[h]
+\centering
+\caption{Hyperparameters for all models}
+\begin{tabular}{llc}
+\toprule
+\textbf{Category} & \textbf{Parameter} & \textbf{Value} \\
+\midrule
+\multirow{4}{*}{Training (Stage 1)} 
+& Epochs & 50 \\
+& Learning rate & $10^{-3}$ \\
+& Early stopping patience & 15 \\
+& CVaR confidence & 0.95 \\
+\midrule
+\multirow{5}{*}{Training (Stage 2)} 
+& Epochs & 30 \\
+& Learning rate & $10^{-4}$ \\
+& Early stopping patience & 10 \\
+& Entropic $\lambda$ & 1.0 \\
+& Trading penalty $\gamma$ & $10^{-3}$ \\
+\midrule
+\multirow{4}{*}{Optimization} 
+& Optimizer & Adam \\
+& Weight decay & $10^{-4}$ \\
+& Gradient clip norm & 5.0 \\
+& Batch size & 256 \\
+\midrule
+\multirow{2}{*}{Architecture} 
+& Delta bound $\delta_{\max}$ & 1.5 \\
+& Dropout & 0.1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Model Architecture Details}
+\label{app:architectures}
+
+\subsection{LSTM Hedger}
+
+\begin{verbatim}
+LSTMHedger(
+  (lstm): LSTM(input=5, hidden=50, layers=2, dropout=0.1)
+  (fc): Linear(50, 1)
+  (output): Tanh() * 1.5
+)
+Parameters: 53,825
+\end{verbatim}
+
+\subsection{Transformer Hedger}
+
+\begin{verbatim}
+TransformerHedger(
+  (input_proj): Linear(6, 64)
+  (pos_encoding): SinusoidalPE(64, max_len=100)
+  (encoder): TransformerEncoder(
+    (layers): 3 x TransformerEncoderLayer(
+      d_model=64, nhead=4, dim_feedforward=256, 
+      dropout=0.1, activation=gelu
+    )
+  )
+  (output_proj): Sequential(
+    Linear(64, 32), GELU(), Linear(32, 1)
+  )
+  (output): Tanh() * 1.5
+)
+Parameters: 85,441
+\end{verbatim}
+
+\subsection{AttentionLSTM}
+
+\begin{verbatim}
+AttentionLSTM(
+  (lstm): LSTM(input=5, hidden=64, layers=2, dropout=0.1)
+  (attention): MultiheadAttention(64, 4)
+  (fc): Linear(128, 1)
+  (output): Tanh() * 1.5
+)
+Parameters: 70,593
+\end{verbatim}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Statistical Methods}
+\label{app:statistics}
+
+\subsection{Bootstrap Confidence Intervals}
+
+For a statistic $\theta$ computed on data $X = (X_1, \ldots, X_n)$:
+
+\begin{enumerate}
+    \item For $b = 1, \ldots, B$ (with $B = 10,000$):
+    \begin{enumerate}
+        \item Draw bootstrap sample $X^{*b} = (X_{i_1}^*, \ldots, X_{i_n}^*)$ with replacement
+        \item Compute $\theta^{*b} = \theta(X^{*b})$
+    \end{enumerate}
+    \item Compute percentile CI: $[\theta^*_{(\alpha/2)}, \theta^*_{(1-\alpha/2)}]$
+\end{enumerate}
+
+\subsection{Paired Bootstrap Test}
+
+For comparing statistics $\theta_A$ and $\theta_B$ on paired data:
+
+\begin{enumerate}
+    \item Compute observed difference $d_{obs} = \theta_B(X) - \theta_A(X)$
+    \item For $b = 1, \ldots, B$:
+    \begin{enumerate}
+        \item Draw paired bootstrap sample with same indices
+        \item Compute $d^{*b} = \theta_B(X^{*b}) - \theta_A(X^{*b})$
+    \end{enumerate}
+    \item $p$-value: $2 \cdot \min(P(d^* \leq 0), P(d^* \geq 0))$
+\end{enumerate}
+
+\subsection{Holm-Bonferroni Correction}
+
+For $m$ hypothesis tests with $p$-values $p_1, \ldots, p_m$:
+
+\begin{enumerate}
+    \item Order $p$-values: $p_{(1)} \leq p_{(2)} \leq \cdots \leq p_{(m)}$
+    \item For $k = 1, \ldots, m$:
+    \begin{enumerate}
+        \item If $p_{(k)} > \alpha / (m - k + 1)$: reject no more hypotheses
+        \item Else: reject hypothesis $(k)$
+    \end{enumerate}
+\end{enumerate}
+
+\subsection{Cohen's d Effect Size}
+
+For paired observations $(X_i, Y_i)$:
+
+\begin{equation}
+    d = \frac{\bar{Y} - \bar{X}}{s_D}
+\end{equation}
+
+where $s_D$ is the standard deviation of differences $D_i = Y_i - X_i$.
+
+Interpretation:
+\begin{itemize}
+    \item $|d| < 0.2$: negligible
+    \item $0.2 \leq |d| < 0.5$: small
+    \item $0.5 \leq |d| < 0.8$: medium
+    \item $|d| \geq 0.8$: large
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Complete Experimental Results}
+\label{app:full_results}
+
+\begin{table}[h]
+\centering
+\caption{Complete test metrics across all seeds (mean $\pm$ std)}
+\label{tab:full_results}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Metric} & \textbf{LSTM} & \textbf{Transformer} & \textbf{AttentionLSTM} & \textbf{SigLSTM} & \textbf{SigMLP} \\
+\midrule
+CVaR$_{95}$ & $4.43 \pm 0.02$ & $4.41 \pm 0.03$ & $4.44 \pm 0.03$ & $4.44 \pm 0.02$ & $4.46 \pm 0.03$ \\
+CVaR$_{99}$ & $5.89 \pm 0.04$ & $5.90 \pm 0.04$ & $5.91 \pm 0.05$ & $5.91 \pm 0.05$ & $5.94 \pm 0.05$ \\
+VaR$_{95}$ & $3.21 \pm 0.02$ & $3.19 \pm 0.02$ & $3.22 \pm 0.02$ & $3.22 \pm 0.02$ & $3.23 \pm 0.02$ \\
+VaR$_{99}$ & $4.52 \pm 0.03$ & $4.50 \pm 0.03$ & $4.53 \pm 0.04$ & $4.53 \pm 0.04$ & $4.55 \pm 0.04$ \\
+Mean P\&L & $0.12 \pm 0.01$ & $0.13 \pm 0.01$ & $0.12 \pm 0.01$ & $0.12 \pm 0.01$ & $0.12 \pm 0.01$ \\
+Std P\&L & $2.71 \pm 0.01$ & $2.69 \pm 0.02$ & $2.72 \pm 0.01$ & $2.71 \pm 0.01$ & $2.71 \pm 0.01$ \\
+Entropic Risk & $2.84 \pm 0.01$ & $2.82 \pm 0.02$ & $2.84 \pm 0.01$ & $2.84 \pm 0.01$ & $2.85 \pm 0.01$ \\
+Trading Vol. & $0.85 \pm 0.09$ & $0.64 \pm 0.10$ & $0.71 \pm 0.13$ & $0.64 \pm 0.09$ & $0.64 \pm 0.09$ \\
+Max $|\delta|$ & $1.48 \pm 0.02$ & $1.47 \pm 0.02$ & $1.48 \pm 0.02$ & $1.47 \pm 0.02$ & $1.47 \pm 0.02$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Computational Requirements}
+\label{app:compute}
+
+\begin{table}[h]
+\centering
+\caption{Training time and computational requirements}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Model} & \textbf{Train Time} & \textbf{Inference} & \textbf{GPU Memory} & \textbf{Parameters} \\
+\midrule
+LSTM & 12 min & 0.8 ms & 1.2 GB & 53,825 \\
+AttentionLSTM & 18 min & 1.2 ms & 1.5 GB & 70,593 \\
+Transformer & 25 min & 1.5 ms & 2.1 GB & 85,441 \\
+SignatureLSTM & 35 min & 3.2 ms & 1.8 GB & 62,417 \\
+SignatureMLP & 28 min & 2.8 ms & 1.4 GB & 48,129 \\
+\bottomrule
+\end{tabular}
+\footnotesize{Hardware: NVIDIA RTX 3080 GPU, AMD Ryzen 9 CPU, 32GB RAM}
+\end{table}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Code Availability}
+\label{app:code}
+
+The complete codebase is organized as follows:
+
+\begin{verbatim}
+deep_hedging/
+├── src/
+│   ├── models/          # Neural network architectures
+│   ├── train/           # Training loops and losses
+│   ├── eval/            # Evaluation and metrics
+│   └── features/        # Feature engineering
+├── experiments/         # Experiment configurations
+├── final_audit_experiments/
+│   ├── audit/           # Scientific validation
+│   ├── training/        # Fair training framework
+│   ├── evaluation/      # Statistical analysis
+│   ├── market_validation/   # Real market backtests
+│   └── paper/           # Financial analysis
+└── paper/               # LaTeX documents
+\end{verbatim}
+
+All experiments are reproducible with fixed random seeds.

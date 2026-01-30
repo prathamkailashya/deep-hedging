@@ -1,0 +1,17 @@
+======================================================================
+NOVEL DEEP HEDGING EXPERIMENTS - RESULTS SUMMARY
+======================================================================
+Generated: 2026-01-28 23:36:08
+Results file: /Users/prathamkailasiya/Desktop/Thesis/deep_hedging/new_approaches/results/results_20260128_233153.pkl
+
+MODEL PERFORMANCE (CVaR95)
+----------------------------------------
+  1. LSTM: 3.2227 ± 0.0376
+
+STATISTICAL COMPARISON VS LSTM
+----------------------------------------
+KEY FINDINGS
+----------------------------------------
+  • Best CVaR95: LSTM (3.2227)
+
+======================================================================

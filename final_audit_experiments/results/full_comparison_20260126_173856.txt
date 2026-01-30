@@ -1,0 +1,26 @@
+FULL-SCALE DEEP HEDGING COMPARISON RESULTS
+Seeds: 10, Train: 50000, Test: 20000
+================================================================================
+
+Model                Metric                Diff               95% CI        p        d   Sig
+------------------------------------------------------------------------------------------
+SignatureLSTM        cvar_95             0.0109    [-0.0104, 0.0322]   0.2754    0.387      
+SignatureLSTM        cvar_99             0.0207    [-0.0178, 0.0593]   0.2545    0.406      
+SignatureLSTM        std_pnl             0.0033    [-0.0072, 0.0138]   0.4911    0.239      
+SignatureLSTM        entropic_risk       0.0047    [-0.0057, 0.0151]   0.3325    0.341      
+SignatureLSTM        trading_volume     -0.2056   [-0.2760, -0.1353]   0.0001   -2.204     *
+SignatureMLP         cvar_95             0.0279     [0.0078, 0.0481]   0.0121    1.045      
+SignatureMLP         cvar_99             0.0523     [0.0134, 0.0911]   0.0139    1.015      
+SignatureMLP         std_pnl            -0.0006    [-0.0083, 0.0071]   0.8674   -0.057      
+SignatureMLP         entropic_risk       0.0060    [-0.0022, 0.0142]   0.1327    0.551      
+SignatureMLP         trading_volume     -0.2061   [-0.2770, -0.1352]   0.0001   -2.193     *
+Transformer          cvar_95            -0.0307   [-0.0574, -0.0040]   0.0286   -0.867      
+Transformer          cvar_99             0.0087    [-0.0271, 0.0445]   0.5970    0.183      
+Transformer          std_pnl            -0.0215   [-0.0337, -0.0093]   0.0032   -1.326      
+Transformer          entropic_risk      -0.0202   [-0.0332, -0.0071]   0.0067   -1.166      
+Transformer          trading_volume     -0.2133   [-0.2872, -0.1394]   0.0001   -2.176     *
+AttentionLSTM        cvar_95             0.0116    [-0.0134, 0.0365]   0.3223    0.349      
+AttentionLSTM        cvar_99             0.0206    [-0.0298, 0.0709]   0.3794    0.308      
+AttentionLSTM        std_pnl             0.0048    [-0.0053, 0.0149]   0.3076    0.360      
+AttentionLSTM        entropic_risk       0.0048    [-0.0057, 0.0153]   0.3250    0.347      
+AttentionLSTM        trading_volume     -0.1387   [-0.2335, -0.0438]   0.0091   -1.102      
