@@ -552,6 +552,21 @@ class RSETrainer:
         history = self.train_gating(train_loader)
         return history
     
+    def train(self, train_loader, val_loader=None, epochs=80):
+        """2-stage training interface for fair comparison with LSTM/Transformer.
+        
+        Stage 1: Pretrain base models (30 epochs each)
+        Stage 2: Train gating network (remaining epochs)
+        """
+        # Stage 1: Pretrain base models (30 epochs for fairness)
+        pretrain_epochs = min(30, epochs // 2)
+        self.pretrain_base_models(train_loader, epochs=pretrain_epochs)
+        
+        # Stage 2: Train gating (remaining epochs)
+        gating_epochs = epochs - pretrain_epochs
+        if gating_epochs > 0:
+            self.train_gating(train_loader, epochs=gating_epochs)
+    
     def _compute_pnl(self, deltas, prices, payoff, tc=0.001):
         """Compute P&L."""
         price_changes = prices[:, 1:] - prices[:, :-1]

@@ -17,6 +17,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from typing import Optional, Tuple, Dict, Any
+from contextlib import nullcontext
 import sys
 import os
 
@@ -77,8 +78,16 @@ class WassersteinDROLoss(nn.Module):
         # Enable gradient computation for inputs
         inputs_grad = inputs.detach().clone().requires_grad_(True)
         
-        # Forward pass
-        deltas = model(inputs_grad)
+        # Use math backend for SDPA to support second-order gradients
+        # This is required because DRO gradient penalty needs create_graph=True
+        # which isn't supported by efficient/flash attention backends
+        sdp_ctx = torch.nn.attention.sdpa_kernel(
+            [torch.nn.attention.SDPBackend.MATH]
+        ) if hasattr(torch.nn.attention, 'sdpa_kernel') else nullcontext()
+        
+        with sdp_ctx:
+            # Forward pass
+            deltas = model(inputs_grad)
         
         # Compute P&L
         pnl = self._compute_pnl(deltas, prices, option_payoff, transaction_cost)

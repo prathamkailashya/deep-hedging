@@ -468,6 +468,32 @@ class RSVNTrainer:
         
         return total_loss / len(train_loader)
     
+    def train(self, train_loader, val_loader=None, epochs=80):
+        """2-stage training for fair comparison with LSTM/Transformer.
+        
+        Stage 1: CVaR-style pretraining (50 epochs)
+        Stage 2: Entropic fine-tuning (30 epochs)
+        """
+        stage1_epochs = min(50, int(epochs * 0.625))  # 50/80 = 0.625
+        stage2_epochs = epochs - stage1_epochs
+        
+        print(f"Stage 1: Training ({stage1_epochs} epochs)")
+        for epoch in range(stage1_epochs):
+            loss = self.train_epoch(train_loader)
+            if (epoch + 1) % 10 == 0 or epoch == 0:
+                print(f"  Epoch {epoch+1}/{stage1_epochs}: Loss = {loss:.4f}")
+        
+        # Stage 2: Lower learning rate for fine-tuning
+        if stage2_epochs > 0:
+            print(f"Stage 2: Fine-tuning ({stage2_epochs} epochs)")
+            for param_group in self.optimizer.param_groups:
+                param_group['lr'] *= 0.1
+            
+            for epoch in range(stage2_epochs):
+                loss = self.train_epoch(train_loader)
+                if (epoch + 1) % 10 == 0 or epoch == 0:
+                    print(f"  Epoch {epoch+1}/{stage2_epochs}: Loss = {loss:.4f}")
+    
     def _compute_pnl(self, deltas, prices, payoff, tc=0.001):
         """Compute P&L."""
         price_changes = prices[:, 1:] - prices[:, :-1]

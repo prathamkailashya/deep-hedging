@@ -328,15 +328,15 @@ def train_3sch(train_loader, val_loader, test_loader, test_data, seed, device='c
         delta_scale=1.5
     ).to(device)
     
-    # Full three-stage training
+    # 2-stage training for fair comparison (same as LSTM/Transformer)
     trainer = ThreeStageTrainer(
         model,
         lr_stage1=LR_STAGE1,
-        lr_stage2=5e-4,  # Intermediate rate for stage 2
+        lr_stage2=LR_STAGE2,  # Same as other models
         lr_stage3=LR_STAGE2,
         weight_decay=WEIGHT_DECAY,
         epochs_stage1=EPOCHS_STAGE1,
-        epochs_stage2=20,  # Explicit stage 2
+        epochs_stage2=0,  # Skip stage 2 for 2-stage protocol (fair comparison)
         epochs_stage3=EPOCHS_STAGE2,
         patience_stage1=PATIENCE_STAGE1,
         patience_stage3=PATIENCE_STAGE2,
@@ -367,7 +367,7 @@ def train_rse(train_loader, val_loader, test_loader, test_data, seed, device='cp
     ).to(device)
     
     trainer = RSETrainer(model, device=device)
-    trainer.train(train_loader, val_loader, epochs=EPOCHS_STAGE1)
+    trainer.train(train_loader, val_loader, epochs=EPOCHS_STAGE1 + EPOCHS_STAGE2)  # 80 epochs for fair comparison
     
     train_time = time.time() - start
     pnl, deltas = compute_pnl(model, test_loader, test_data, device)
@@ -392,7 +392,7 @@ def train_rvsn(train_loader, val_loader, test_loader, test_data, seed, device='c
     ).to(device)
     
     trainer = RSVNTrainer(model, device=device)
-    trainer.train(train_loader, val_loader, epochs=EPOCHS_STAGE1)
+    trainer.train(train_loader, val_loader, epochs=EPOCHS_STAGE1 + EPOCHS_STAGE2)  # 80 epochs for fair comparison
     
     train_time = time.time() - start
     pnl, deltas = compute_pnl(model, test_loader, test_data, device)
