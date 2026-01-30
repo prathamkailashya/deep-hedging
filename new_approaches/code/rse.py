@@ -495,7 +495,7 @@ class RSETrainer:
             for epoch in range(epochs):
                 for batch in train_loader:
                     features = batch['features'].to(self.device)
-                    prices = batch['prices'].to(self.device)
+                    prices = batch.get('prices', batch.get('stock_paths')).to(self.device)
                     payoff = batch['payoff'].to(self.device)
                     
                     optimizer.zero_grad()
@@ -526,7 +526,7 @@ class RSETrainer:
             
             for batch in train_loader:
                 features = batch['features'].to(self.device)
-                prices = batch['prices'].to(self.device)
+                prices = batch.get('prices', batch.get('stock_paths')).to(self.device)
                 payoff = batch['payoff'].to(self.device)
                 
                 self.optimizer.zero_grad()

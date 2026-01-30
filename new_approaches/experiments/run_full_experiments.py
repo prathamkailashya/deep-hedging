@@ -413,7 +413,7 @@ def train_sac_cvar(train_loader, val_loader, test_loader, test_data, seed, devic
     prices_list = []
     payoffs_list = []
     for batch in test_loader:
-        prices_list.append(batch['prices'])
+        prices_list.append(batch.get('prices', batch.get('stock_paths')))
         payoffs_list.append(batch['payoff'])
     
     prices = torch.cat(prices_list, dim=0)
@@ -454,7 +454,7 @@ def train_sac_cvar(train_loader, val_loader, test_loader, test_data, seed, devic
     all_deltas = []
     
     for batch in test_loader:
-        batch_prices = batch['prices']
+        batch_prices = batch.get('prices', batch.get('stock_paths'))
         batch_payoffs = batch['payoff']
         
         for i in range(len(batch_prices)):

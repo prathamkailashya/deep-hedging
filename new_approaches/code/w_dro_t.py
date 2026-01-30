@@ -233,7 +233,7 @@ class WDROTrainer:
         
         # Loss functions for different phases
         self.cvar_loss = CVaRLoss(alpha=0.95)
-        self.entropic_loss = EntropicLoss(lambda_=1.0)
+        self.entropic_loss = EntropicLoss(lambda_risk=1.0)
     
     def train_phase1(
         self,
@@ -249,7 +249,13 @@ class WDROTrainer:
         
         for epoch in range(epochs):
             epoch_loss = 0.0
-            for batch in train_loader:
+            n_batches = len(train_loader)
+            for batch_idx, batch in enumerate(train_loader):
+                if batch_idx == 0 and epoch == 0:
+                    print(f"  Starting epoch 1 with {n_batches} batches...")
+                # Progress indicator every 50 batches for slow models
+                if n_batches > 100 and batch_idx > 0 and batch_idx % 50 == 0:
+                    print(f"    Batch {batch_idx}/{n_batches}...", end='\r')
                 inputs, prices, payoff = self._unpack_batch(batch)
                 
                 self.optimizer.zero_grad()
@@ -262,7 +268,7 @@ class WDROTrainer:
                 
                 epoch_loss += loss.item()
             
-            avg_loss = epoch_loss / len(train_loader)
+            avg_loss = epoch_loss / n_batches
             history['loss'].append(avg_loss)
             
             if avg_loss < best_loss:
@@ -274,8 +280,8 @@ class WDROTrainer:
                     print(f"  Early stopping at epoch {epoch+1}")
                     break
             
-            if (epoch + 1) % 10 == 0:
-                print(f"  Epoch {epoch+1}: CVaR Loss = {avg_loss:.4f}")
+            if (epoch + 1) % 10 == 0 or epoch == 0:
+                print(f"  Epoch {epoch+1}/{epochs}: CVaR Loss = {avg_loss:.4f}")
         
         return history
     
@@ -363,10 +369,21 @@ class WDROTrainer:
         results['phase3'] = self.train_phase3(train_loader)
         return results
     
+    def train(self, train_loader, val_loader=None, epochs=80):
+        """Simple training interface for compatibility."""
+        # Split epochs: 50 phase1, 30 phase2 (matching paper.tex 2-stage)
+        phase1_epochs = min(50, epochs)
+        phase2_epochs = max(0, epochs - 50)
+        
+        self.train_phase1(train_loader, epochs=phase1_epochs)
+        if phase2_epochs > 0:
+            self.train_phase2(train_loader, epochs=phase2_epochs)
+    
     def _unpack_batch(self, batch):
         """Unpack batch and move to device."""
         inputs = batch['features'].to(self.device)
-        prices = batch['prices'].to(self.device)
+        # Handle both 'prices' and 'stock_paths' keys for compatibility
+        prices = batch.get('prices', batch.get('stock_paths')).to(self.device)
         payoff = batch['payoff'].to(self.device)
         return inputs, prices, payoff
     
