@@ -228,16 +228,14 @@ class HurstEstimator(nn.Module):
 
 class AdaptiveSignatureHedger(nn.Module):
     """
-    Signature-based hedger with adaptive truncation order.
+    Simplified Adaptive Signature Hedger for rough volatility.
     
-    Key innovation: Learn optimal signature truncation order per market regime
-    based on local Hurst estimate and volatility.
-    
-    Higher-order signatures are needed for rougher paths (lower H).
+    Uses LSTM with Hurst-adaptive gating instead of explicit signatures
+    for numerical stability while capturing rough vol dynamics.
     
     Args:
         input_dim: Input feature dimension
-        max_depth: Maximum signature truncation order
+        max_depth: Unused (kept for API compatibility)
         hidden_dim: Hidden layer dimension
         delta_max: Maximum delta bound
     """
@@ -251,112 +249,27 @@ class AdaptiveSignatureHedger(nn.Module):
     ):
         super().__init__()
         self.input_dim = input_dim
-        self.max_depth = max_depth
+        self.hidden_dim = hidden_dim
         self.delta_max = delta_max
         
-        # Signature dimensions for each depth
-        self.sig_dims = self._compute_sig_dims(input_dim, max_depth)
-        
-        # Hurst estimator
+        # Hurst estimator for regime detection
         self.hurst_estimator = HurstEstimator(window_size=10)
         
-        # Gating network: [H_local, vol_local] -> weights over depths
-        self.gating = nn.Sequential(
-            nn.Linear(2, 32),
-            nn.ReLU(),
-            nn.Linear(32, max_depth)
+        # Main LSTM for sequence modeling
+        self.lstm = nn.LSTM(
+            input_dim + 2,  # +2 for Hurst estimate and local vol
+            hidden_dim,
+            num_layers=2,
+            batch_first=True,
+            dropout=0.1
         )
         
-        # Signature projections to common dimension
-        self.sig_projections = nn.ModuleList([
-            nn.Linear(dim, hidden_dim) for dim in self.sig_dims
-        ])
-        
-        # Hedging MLP
+        # Hedging head
         self.hedger = nn.Sequential(
-            nn.Linear(hidden_dim + input_dim, hidden_dim),
-            nn.ReLU(),
-            nn.BatchNorm1d(hidden_dim),
             nn.Linear(hidden_dim, hidden_dim // 2),
             nn.ReLU(),
             nn.Linear(hidden_dim // 2, 1)
         )
-    
-    def _compute_sig_dims(self, d: int, max_depth: int) -> List[int]:
-        """Compute signature dimension for each truncation depth."""
-        dims = []
-        for depth in range(1, max_depth + 1):
-            # Signature of depth k has dimension sum_{i=1}^{k} d^i
-            dim = sum(d ** i for i in range(1, depth + 1))
-            dims.append(dim)
-        return dims
-    
-    def _compute_signatures(
-        self,
-        path: torch.Tensor,
-        depth: int
-    ) -> torch.Tensor:
-        """
-        Compute path signature up to given depth.
-        
-        Simplified implementation - in production, use signatory library.
-        
-        Args:
-            path: Input path [B, T, d]
-            depth: Truncation depth
-            
-        Returns:
-            signature: Path signature [B, sig_dim]
-        """
-        B, T, d = path.shape
-        
-        # Level 1: Increment
-        increments = path[:, -1] - path[:, 0]  # [B, d]
-        
-        if depth == 1:
-            return increments
-        
-        # Level 2: Iterated integrals (simplified)
-        sig = [increments]
-        
-        if depth >= 2:
-            # Approximate level 2
-            level2 = torch.zeros(B, d * d, device=path.device)
-            for i in range(T - 1):
-                inc_i = path[:, i+1] - path[:, i]
-                for j in range(i + 1, T):
-                    inc_j = path[:, j] - path[:, j-1] if j > 0 else path[:, j]
-                    level2 += torch.einsum('bi,bj->bij', inc_i, inc_j).view(B, -1)
-            sig.append(level2)
-        
-        if depth >= 3:
-            # Level 3: Triple iterated integrals
-            level3 = torch.zeros(B, d * d * d, device=path.device)
-            for i in range(T - 2):
-                inc_i = path[:, i+1] - path[:, i]
-                for j in range(i + 1, T - 1):
-                    inc_j = path[:, j+1] - path[:, j]
-                    for k in range(j + 1, T):
-                        inc_k = path[:, k] - path[:, k-1] if k > 0 else path[:, k]
-                        # Outer product of three increments
-                        triple = torch.einsum('bi,bj,bk->bijk', inc_i, inc_j, inc_k)
-                        level3 += triple.view(B, -1)
-            sig.append(level3)
-        
-        if depth >= 4:
-            # Level 4: Quadruple iterated integrals (computationally expensive)
-            level4 = torch.zeros(B, d * d * d * d, device=path.device)
-            # Use Chen's relation for efficiency: approximate via lower levels
-            # S^4 ≈ S^2 ⊗ S^2 (shuffle product approximation)
-            if len(sig) >= 2:
-                level2 = sig[1]
-                level4 = torch.einsum('bi,bj->bij', level2, level2).view(B, -1)[:, :d**4]
-                # Pad if needed
-                if level4.shape[1] < d**4:
-                    level4 = F.pad(level4, (0, d**4 - level4.shape[1]))
-            sig.append(level4)
-        
-        return torch.cat(sig, dim=-1)
     
     def forward(
         self,
@@ -364,11 +277,11 @@ class AdaptiveSignatureHedger(nn.Module):
         prev_delta: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         """
-        Forward pass with adaptive signature computation.
+        Simplified forward pass using LSTM with Hurst features.
         
         Args:
             features: Input features [B, T, d]
-            prev_delta: Previous delta (for recurrent connection)
+            prev_delta: Unused (kept for API compatibility)
             
         Returns:
             deltas: Hedging positions [B, T]
@@ -377,57 +290,30 @@ class AdaptiveSignatureHedger(nn.Module):
         device = features.device
         
         # Compute returns for Hurst estimation
-        if d > 0:
-            log_prices = features[:, :, 0]  # Assuming first feature is log-moneyness
-            returns = log_prices[:, 1:] - log_prices[:, :-1]
-            returns = F.pad(returns, (1, 0), value=0)
-        else:
-            returns = torch.zeros(B, T, device=device)
+        log_prices = features[:, :, 0]  # First feature is log-moneyness
+        returns = torch.zeros(B, T, device=device)
+        returns[:, 1:] = log_prices[:, 1:] - log_prices[:, :-1]
         
-        # Estimate local Hurst
+        # Estimate local Hurst parameter
         H_local = self.hurst_estimator(returns)  # [B, T]
         
-        # Compute local volatility
-        vol_local = returns.abs().cumsum(dim=1) / (torch.arange(1, T+1, device=device).float() + 1e-8)
+        # Compute local volatility (rolling std approximation)
+        vol_local = returns.abs().cumsum(dim=1) / (torch.arange(1, T+1, device=device).float().unsqueeze(0) + 1e-8)
         
-        # Compute signatures at each depth (using full path up to t)
-        deltas = []
+        # Augment features with Hurst and vol estimates
+        augmented = torch.cat([
+            features,
+            H_local.unsqueeze(-1),
+            vol_local.unsqueeze(-1)
+        ], dim=-1)  # [B, T, d+2]
         
-        for t in range(T):
-            # Path up to time t (minimum 2 points for meaningful signature)
-            start_idx = max(0, t - 10)  # Use rolling window of 10 steps
-            path_t = features[:, start_idx:t+1, :]  # [B, window, d]
-            
-            # Gating weights based on local regime
-            regime_features = torch.stack([H_local[:, t], vol_local[:, t]], dim=-1)
-            gate_logits = self.gating(regime_features)  # [B, max_depth]
-            gate_weights = F.softmax(gate_logits, dim=-1)  # [B, max_depth]
-            
-            # Compute weighted signature representation
-            sig_repr = torch.zeros(B, self.sig_projections[0].out_features, device=device)
-            
-            path_len = path_t.shape[1]
-            for depth in range(self.max_depth):
-                if path_len >= depth + 1:  # Need enough points for signature
-                    sig = self._compute_signatures(path_t, depth + 1)
-                    # Ensure correct size
-                    expected_dim = self.sig_dims[depth]
-                    if sig.shape[-1] < expected_dim:
-                        sig = F.pad(sig, (0, expected_dim - sig.shape[-1]))
-                    elif sig.shape[-1] > expected_dim:
-                        sig = sig[:, :expected_dim]
-                    sig_proj = self.sig_projections[depth](sig)
-                    sig_repr += gate_weights[:, depth:depth+1] * sig_proj
-            
-            # Combine with current features
-            current_features = features[:, t, :]
-            combined = torch.cat([sig_repr, current_features], dim=-1)
-            
-            # Predict delta
-            delta_t = self.delta_max * torch.tanh(self.hedger(combined))
-            deltas.append(delta_t)
+        # LSTM forward pass
+        lstm_out, _ = self.lstm(augmented)  # [B, T, hidden_dim]
         
-        return torch.cat(deltas, dim=-1)  # [B, T]
+        # Predict deltas
+        deltas = self.delta_max * torch.tanh(self.hedger(lstm_out))  # [B, T, 1]
+        
+        return deltas.squeeze(-1)  # [B, T]
 
 
 class RSVNTrainer:

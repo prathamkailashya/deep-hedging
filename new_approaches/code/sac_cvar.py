@@ -255,12 +255,12 @@ class CVaRConstrainedSAC:
         self.critic1_target.load_state_dict(self.critic1.state_dict())
         self.critic2_target.load_state_dict(self.critic2.state_dict())
         
-        # Learnable temperature and Lagrange multiplier
+        # Learnable temperature and Lagrange multiplier (use float32 for MPS compatibility)
         self.log_alpha = torch.tensor(
-            np.log(0.2), requires_grad=True, device=device
+            np.log(0.2), requires_grad=True, device=device, dtype=torch.float32
         )
         self.log_lambda = torch.tensor(
-            np.log(self.params.initial_lambda), requires_grad=True, device=device
+            np.log(self.params.initial_lambda), requires_grad=True, device=device, dtype=torch.float32
         )
         
         # Target entropy
