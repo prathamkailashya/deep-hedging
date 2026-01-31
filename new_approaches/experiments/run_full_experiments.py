@@ -316,7 +316,17 @@ def train_wdrot(train_loader, val_loader, test_loader, test_data, seed, device='
 
 
 def train_3sch(train_loader, val_loader, test_loader, test_data, seed, device='cpu'):
-    """Train 3SCH (Three-Stage Curriculum Hedger)."""
+    """Train 3SCH (Three-Stage Curriculum Hedger).
+    
+    NOVELTY: Uses 3-stage curriculum with intermediate mixed CVaR+Entropic stage.
+    
+    Stage 1: CVaR pretraining (40 epochs) - tail risk awareness
+    Stage 2: Mixed CVaR+Entropic (15 epochs) - smooth transition (NOVEL)
+    Stage 3: Entropic fine-tuning (25 epochs) - utility maximization
+    
+    Total = 80 epochs for FAIR comparison with LSTM/Transformer.
+    The novelty is the curriculum design, not more training time.
+    """
     set_seed(seed)
     import time
     start = time.time()
@@ -328,16 +338,17 @@ def train_3sch(train_loader, val_loader, test_loader, test_data, seed, device='c
         delta_scale=1.5
     ).to(device)
     
-    # 2-stage training for fair comparison (same as LSTM/Transformer)
+    # TRUE 3-stage curriculum (total 80 epochs for fair comparison)
+    # Proportionally scaled: 50:20:30 original -> 40:15:25 (scaled to 80)
     trainer = ThreeStageTrainer(
         model,
         lr_stage1=LR_STAGE1,
-        lr_stage2=LR_STAGE2,  # Same as other models
+        lr_stage2=5e-4,  # Intermediate LR for mixed stage
         lr_stage3=LR_STAGE2,
         weight_decay=WEIGHT_DECAY,
-        epochs_stage1=EPOCHS_STAGE1,
-        epochs_stage2=0,  # Skip stage 2 for 2-stage protocol (fair comparison)
-        epochs_stage3=EPOCHS_STAGE2,
+        epochs_stage1=40,  # CVaR pretraining
+        epochs_stage2=15,  # Mixed CVaR+Entropic (THE NOVELTY)
+        epochs_stage3=25,  # Entropic fine-tuning
         patience_stage1=PATIENCE_STAGE1,
         patience_stage3=PATIENCE_STAGE2,
         grad_clip=GRAD_CLIP,
@@ -492,8 +503,8 @@ def train_sac_cvar(train_loader, val_loader, test_loader, test_data, seed, devic
 TRAIN_FUNCS = {
     'LSTM': train_lstm,
     'Transformer': train_transformer,
-    'W-DRO-T': train_wdrot,
     'RVSN': train_rvsn,
+    'W-DRO-T': train_wdrot,
     'SAC-CVaR': train_sac_cvar,
     '3SCH': train_3sch,
     'RSE': train_rse,
@@ -663,11 +674,11 @@ def main():
     args = parser.parse_args()
     
     if args.all:
-        models = ['LSTM', 'Transformer', 'W-DRO-T', 'RVSN', 'SAC-CVaR', '3SCH', 'RSE']
+        models = ['LSTM', 'Transformer', 'RSE', 'SAC-CVaR', '3SCH', 'RVSN', 'W-DRO-T']
     elif args.baselines:
         models = ['LSTM', 'Transformer']
     elif args.novel:
-        models = ['W-DRO-T', 'RVSN', 'SAC-CVaR', '3SCH', 'RSE']
+        models = ['RSE', 'SAC-CVaR', '3SCH', 'RVSN', 'W-DRO-T']
     elif args.model:
         models = [args.model]
     else:

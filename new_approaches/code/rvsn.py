@@ -431,20 +431,40 @@ class AdaptiveSignatureHedger(nn.Module):
 
 
 class RSVNTrainer:
-    """Trainer for Rough Volatility Signature Network."""
+    """Trainer for Rough Volatility Signature Network.
+    
+    Uses proper 2-stage training for FAIR comparison with LSTM/Transformer:
+    Stage 1: CVaR pretraining (tail risk awareness)
+    Stage 2: Entropic fine-tuning (utility maximization)
+    """
     
     def __init__(
         self,
         model: AdaptiveSignatureHedger,
-        lr: float = 5e-4,
+        lr: float = 1e-3,  # Match LSTM/Transformer LR
         device: str = 'cuda'
     ):
         self.model = model.to(device)
         self.device = device
         self.optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+        
+        # Loss functions for 2-stage training
+        self.cvar_loss_fn = self._cvar_loss
+        self.entropic_loss_fn = self._entropic_loss
     
-    def train_epoch(self, train_loader) -> float:
-        """Train for one epoch."""
+    def _cvar_loss(self, pnl, alpha=0.95):
+        """CVaR loss for Stage 1."""
+        sorted_pnl, _ = torch.sort(pnl)
+        k = int((1 - alpha) * len(pnl))
+        k = max(1, k)  # At least 1 sample
+        return -sorted_pnl[:k].mean()  # CVaR of negative P&L
+    
+    def _entropic_loss(self, pnl, lambda_risk=1.0):
+        """Entropic loss for Stage 2."""
+        return torch.log(torch.exp(-lambda_risk * pnl).mean()) / lambda_risk
+    
+    def train_epoch(self, train_loader, loss_fn) -> float:
+        """Train for one epoch with specified loss function."""
         self.model.train()
         total_loss = 0.0
         
@@ -457,8 +477,7 @@ class RSVNTrainer:
             deltas = self.model(features)
             pnl = self._compute_pnl(deltas, prices, payoff)
             
-            # Entropic risk loss
-            loss = torch.log(torch.exp(-pnl).mean())
+            loss = loss_fn(pnl)
             
             loss.backward()
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), 5.0)
@@ -469,30 +488,34 @@ class RSVNTrainer:
         return total_loss / len(train_loader)
     
     def train(self, train_loader, val_loader=None, epochs=80):
-        """2-stage training for fair comparison with LSTM/Transformer.
+        """2-stage training matching LSTM/Transformer protocol.
         
-        Stage 1: CVaR-style pretraining (50 epochs)
-        Stage 2: Entropic fine-tuning (30 epochs)
+        Stage 1 (50 epochs): CVaR pretraining with LR=1e-3
+        Stage 2 (30 epochs): Entropic fine-tuning with LR=1e-4
+        
+        This ensures FAIR comparison - same curriculum as baselines.
         """
-        stage1_epochs = min(50, int(epochs * 0.625))  # 50/80 = 0.625
-        stage2_epochs = epochs - stage1_epochs
+        stage1_epochs = 50 if epochs >= 50 else epochs
+        stage2_epochs = max(0, epochs - 50)
         
-        print(f"Stage 1: Training ({stage1_epochs} epochs)")
+        # Stage 1: CVaR pretraining (CRITICAL for fair comparison)
+        print(f"Stage 1: CVaR Pretraining ({stage1_epochs} epochs)")
         for epoch in range(stage1_epochs):
-            loss = self.train_epoch(train_loader)
+            loss = self.train_epoch(train_loader, self.cvar_loss_fn)
             if (epoch + 1) % 10 == 0 or epoch == 0:
-                print(f"  Epoch {epoch+1}/{stage1_epochs}: Loss = {loss:.4f}")
+                print(f"  Epoch {epoch+1}/{stage1_epochs}: CVaR Loss = {loss:.4f}")
         
-        # Stage 2: Lower learning rate for fine-tuning
+        # Stage 2: Entropic fine-tuning with reduced LR
         if stage2_epochs > 0:
-            print(f"Stage 2: Fine-tuning ({stage2_epochs} epochs)")
+            print(f"Stage 2: Entropic Fine-tuning ({stage2_epochs} epochs)")
+            # Reduce learning rate (critical for fair comparison)
             for param_group in self.optimizer.param_groups:
-                param_group['lr'] *= 0.1
+                param_group['lr'] *= 0.1  # 1e-3 -> 1e-4
             
             for epoch in range(stage2_epochs):
-                loss = self.train_epoch(train_loader)
+                loss = self.train_epoch(train_loader, self.entropic_loss_fn)
                 if (epoch + 1) % 10 == 0 or epoch == 0:
-                    print(f"  Epoch {epoch+1}/{stage2_epochs}: Loss = {loss:.4f}")
+                    print(f"  Epoch {epoch+1}/{stage2_epochs}: Entropic Loss = {loss:.4f}")
     
     def _compute_pnl(self, deltas, prices, payoff, tc=0.001):
         """Compute P&L."""

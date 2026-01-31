@@ -455,16 +455,15 @@ class RSETrainer:
     """
     Trainer for Regime-Switching Ensemble.
     
-    Training protocol:
-    1. Pre-train individual models on full dataset
-    2. Freeze base models
-    3. Train regime classifier and affinity matrix end-to-end
+    Uses proper 2-stage training for FAIR comparison with LSTM/Transformer:
+    Stage 1: CVaR pretraining of base models + gating
+    Stage 2: Entropic fine-tuning with reduced LR
     """
     
     def __init__(
         self,
         model: RegimeSwitchingEnsemble,
-        lr: float = 5e-4,
+        lr: float = 1e-3,  # Match LSTM/Transformer LR
         device: str = 'cuda'
     ):
         self.model = model.to(device)
@@ -474,25 +473,43 @@ class RSETrainer:
         trainable_params = list(self.model.regime_classifier.parameters()) + \
                           [self.model.regime_model_affinity]
         self.optimizer = torch.optim.Adam(trainable_params, lr=lr)
+        
+        # Loss functions for 2-stage training
+        self.cvar_loss_fn = self._cvar_loss
+        self.entropic_loss_fn = self._entropic_loss
+    
+    def _cvar_loss(self, pnl, alpha=0.95):
+        """CVaR loss for Stage 1."""
+        sorted_pnl, _ = torch.sort(pnl)
+        k = int((1 - alpha) * len(pnl))
+        k = max(1, k)
+        return -sorted_pnl[:k].mean()
+    
+    def _entropic_loss(self, pnl, lambda_risk=1.0):
+        """Entropic loss for Stage 2."""
+        return torch.log(torch.exp(-lambda_risk * pnl).mean()) / lambda_risk
     
     def pretrain_base_models(
         self,
         train_loader,
-        epochs: int = 30
+        epochs: int = 30,
+        loss_fn=None
     ):
-        """Pre-train individual base models."""
+        """Pre-train individual base models with specified loss."""
         print("Pre-training base models...")
+        loss_fn = loss_fn or self.cvar_loss_fn  # Default to CVaR for Stage 1
         
         for name, wrapper in self.model.models.items():
             print(f"  Training {name}...")
             
             # Unfreeze for pretraining
-            for param in wrapper.model.parameters():
+            for param in wrapper.parameters():
                 param.requires_grad = True
             
-            optimizer = torch.optim.Adam(wrapper.model.parameters(), lr=1e-3)
+            optimizer = torch.optim.Adam(wrapper.parameters(), lr=1e-3)
             
             for epoch in range(epochs):
+                epoch_loss = 0.0
                 for batch in train_loader:
                     features = batch['features'].to(self.device)
                     prices = batch.get('prices', batch.get('stock_paths')).to(self.device)
@@ -501,23 +518,27 @@ class RSETrainer:
                     optimizer.zero_grad()
                     deltas = wrapper(features)
                     pnl = self._compute_pnl(deltas, prices, payoff)
-                    loss = torch.log(torch.exp(-pnl).mean())
+                    loss = loss_fn(pnl)
                     loss.backward()
+                    torch.nn.utils.clip_grad_norm_(wrapper.parameters(), 5.0)
                     optimizer.step()
+                    epoch_loss += loss.item()
             
             # Freeze after pretraining
-            for param in wrapper.model.parameters():
+            for param in wrapper.parameters():
                 param.requires_grad = False
             
-            print(f"    {name} pretrained (loss: {loss.item():.4f})")
+            print(f"    {name} pretrained (loss: {epoch_loss/len(train_loader):.4f})")
     
     def train_gating(
         self,
         train_loader,
-        epochs: int = 50
+        epochs: int = 50,
+        loss_fn=None
     ) -> Dict[str, list]:
-        """Train regime classifier and affinity matrix."""
+        """Train regime classifier and affinity matrix with specified loss."""
         print("Training gating network...")
+        loss_fn = loss_fn or self.entropic_loss_fn  # Default to entropic
         
         history = {'loss': []}
         
@@ -532,8 +553,9 @@ class RSETrainer:
                 self.optimizer.zero_grad()
                 deltas = self.model(features, prices)
                 pnl = self._compute_pnl(deltas, prices, payoff)
-                loss = torch.log(torch.exp(-pnl).mean())
+                loss = loss_fn(pnl)
                 loss.backward()
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), 5.0)
                 self.optimizer.step()
                 
                 epoch_loss += loss.item()
@@ -553,19 +575,33 @@ class RSETrainer:
         return history
     
     def train(self, train_loader, val_loader=None, epochs=80):
-        """2-stage training interface for fair comparison with LSTM/Transformer.
+        """2-stage training matching LSTM/Transformer protocol.
         
-        Stage 1: Pretrain base models (30 epochs each)
-        Stage 2: Train gating network (remaining epochs)
+        Stage 1 (50 epochs): CVaR pretraining with LR=1e-3
+        Stage 2 (30 epochs): Entropic fine-tuning with LR=1e-4
+        
+        This ensures FAIR comparison - same curriculum as baselines.
         """
-        # Stage 1: Pretrain base models (30 epochs for fairness)
-        pretrain_epochs = min(30, epochs // 2)
-        self.pretrain_base_models(train_loader, epochs=pretrain_epochs)
+        stage1_epochs = 50 if epochs >= 50 else epochs
+        stage2_epochs = max(0, epochs - 50)
         
-        # Stage 2: Train gating (remaining epochs)
-        gating_epochs = epochs - pretrain_epochs
-        if gating_epochs > 0:
-            self.train_gating(train_loader, epochs=gating_epochs)
+        # Stage 1: CVaR pretraining (base models + gating)
+        print(f"Stage 1: CVaR Pretraining")
+        pretrain_epochs = min(30, stage1_epochs // 2)
+        gating_epochs_s1 = stage1_epochs - pretrain_epochs
+        
+        self.pretrain_base_models(train_loader, epochs=pretrain_epochs, loss_fn=self.cvar_loss_fn)
+        if gating_epochs_s1 > 0:
+            self.train_gating(train_loader, epochs=gating_epochs_s1, loss_fn=self.cvar_loss_fn)
+        
+        # Stage 2: Entropic fine-tuning with reduced LR
+        if stage2_epochs > 0:
+            print(f"Stage 2: Entropic Fine-tuning ({stage2_epochs} epochs)")
+            # Reduce learning rate (critical for fair comparison)
+            for param_group in self.optimizer.param_groups:
+                param_group['lr'] *= 0.1  # 1e-3 -> 1e-4
+            
+            self.train_gating(train_loader, epochs=stage2_epochs, loss_fn=self.entropic_loss_fn)
     
     def _compute_pnl(self, deltas, prices, payoff, tc=0.001):
         """Compute P&L."""

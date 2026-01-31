@@ -379,14 +379,30 @@ class WDROTrainer:
         return results
     
     def train(self, train_loader, val_loader=None, epochs=80):
-        """Simple training interface for compatibility."""
-        # Split epochs: 50 phase1, 30 phase2 (matching paper.tex 2-stage)
+        """2-stage training interface matching LSTM/Transformer protocol.
+        
+        Stage 1 (50 epochs): CVaR pretraining with LR=1e-3
+        Stage 2 (30 epochs): Entropic fine-tuning with DRO, LR=1e-4
+        
+        Key fixes for fair comparison:
+        1. Reduce LR in Stage 2 (matches baseline protocol)
+        2. Anneal epsilon from 0→0.1 gradually in Stage 2
+        3. Use entropic loss (not DRO) in early Stage 2, add DRO gradually
+        """
         phase1_epochs = min(50, epochs)
         phase2_epochs = max(0, epochs - 50)
         
+        # Phase 1: CVaR pretraining (same as baselines)
         self.train_phase1(train_loader, epochs=phase1_epochs)
+        
+        # Phase 2: Entropic + DRO fine-tuning with REDUCED LR
         if phase2_epochs > 0:
-            self.train_phase2(train_loader, epochs=phase2_epochs)
+            # Reduce learning rate for fine-tuning (critical for fair comparison)
+            for param_group in self.optimizer.param_groups:
+                param_group['lr'] = param_group['lr'] * 0.1  # 1e-3 -> 1e-4
+            
+            self.train_phase2(train_loader, epochs=phase2_epochs,
+                            epsilon_start=0.0, epsilon_end=0.1)
     
     def _unpack_batch(self, batch):
         """Unpack batch and move to device."""
