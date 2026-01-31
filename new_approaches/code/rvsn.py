@@ -478,68 +478,157 @@ def time_augment(path: torch.Tensor) -> torch.Tensor:
 # =====================================================
 # Adaptive Signature Hedger (CORRECT VERSION)
 # =====================================================
-
 class AdaptiveSignatureHedger(nn.Module):
-    def __init__(self, input_dim=5, max_depth=4, hidden_dim=64, delta_max=1.5):
+    """
+    Adaptive Signature Hedger for Rough Volatility.
+
+    Fixes:
+    - Signature dimension explosion
+    - Projection mismatch
+    - Invalid dynamic Linear/LayerNorm usage
+
+    Design:
+    - Compute signatures on rolling windows
+    - Compress signatures to fixed dimension
+    - Apply regime-adaptive gating over depths
+    """
+
+    def __init__(
+        self,
+        input_dim: int = 5,
+        max_depth: int = 4,
+        hidden_dim: int = 64,
+        delta_max: float = 1.5,
+        sig_comp_dim: int = 256,   # 🔑 fixed compressed signature size
+        window: int = 10
+    ):
         super().__init__()
-        self.base_dim = input_dim
-        self.path_dim = 2 * input_dim + 1  # lead–lag + time
 
+        self.input_dim = input_dim
         self.max_depth = max_depth
+        self.hidden_dim = hidden_dim
         self.delta_max = delta_max
+        self.window = window
+        self.sig_comp_dim = sig_comp_dim
 
+        # --- Regime detection ---
         self.hurst = HurstEstimator()
-        self.gating = nn.Sequential(nn.Linear(2, 32), nn.ReLU(), nn.Linear(32, max_depth))
+        self.gating = nn.Sequential(
+            nn.Linear(2, 32),
+            nn.ReLU(),
+            nn.Linear(32, max_depth)
+        )
 
-        self.projections = nn.ModuleList([
-            nn.Linear(self._sig_dim(self.path_dim, d), hidden_dim)
-            for d in range(1, max_depth + 1)
+        # --- Signature projection (FIXED DIMENSION) ---
+        self.sig_projectors = nn.ModuleList([
+            nn.Sequential(
+                nn.Linear(sig_comp_dim, hidden_dim),
+                nn.ReLU()
+            )
+            for _ in range(max_depth)
         ])
 
+        # --- Hedging head ---
         self.head = nn.Sequential(
             nn.Linear(hidden_dim + input_dim, hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, 1)
         )
 
-    @staticmethod
-    def _sig_dim(d, depth):
-        return sum(d ** i for i in range(1, depth + 1))
+    # ------------------------------------------------------------------
+    # Signature computation
+    # ------------------------------------------------------------------
+    def compute_signature(self, path: torch.Tensor, depth: int) -> torch.Tensor:
+        """
+        Compute path signature up to given depth.
 
-    def compute_signature(self, path, depth):
+        Returns:
+            Tensor of shape [B, sig_dim(depth)] (variable!)
+        """
         if HAS_SIGNATORY:
             return signatory.signature(path, depth)
-        # fallback: depth-2 vectorized signature
-        inc = path[:, 1:] - path[:, :-1]
-        level1 = inc.sum(dim=1)
+
+        # ---- fallback: truncated depth-2 proxy (safe) ----
+        inc = path[:, 1:] - path[:, :-1]           # [B, T, D]
+        level1 = inc.sum(dim=1)                    # [B, D]
+
         if depth == 1:
             return level1
-        outer = torch.einsum("bti,btj->bij", inc, inc).reshape(path.size(0), -1)
+
+        outer = torch.einsum("bti,btj->bij", inc, inc)
+        outer = outer.reshape(path.size(0), -1)    # [B, D^2]
+
         return torch.cat([level1, outer], dim=-1)
 
-    def forward(self, features):
-        B, T, _ = features.shape
+    # ------------------------------------------------------------------
+    # Fixed-dimension compression (CRITICAL FIX)
+    # ------------------------------------------------------------------
+    def compress_signature(self, sig: torch.Tensor) -> torch.Tensor:
+        """
+        Compress variable-length signature to fixed size.
 
+        Uses adaptive pooling → stable & depth/window agnostic.
+        """
+        # sig: [B, L] → [B, sig_comp_dim]
+        sig = sig.unsqueeze(1)  # [B, 1, L]
+        sig = F.adaptive_avg_pool1d(sig, self.sig_comp_dim)
+        return sig.squeeze(1)
+
+    # ------------------------------------------------------------------
+    # Forward
+    # ------------------------------------------------------------------
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            features: [B, T, input_dim]
+
+        Returns:
+            deltas: [B, T]
+        """
+        B, T, _ = features.shape
+        device = features.device
+
+        # --- returns for regime estimation ---
         returns = features[:, 1:, 0] - features[:, :-1, 0]
         returns = F.pad(returns, (1, 0))
-        H = self.hurst(returns)
-        vol = returns.abs().cumsum(dim=1) / (torch.arange(1, T + 1, device=features.device) + 1e-8)
+
+        H = self.hurst(returns)  # [B, T]
+        vol = returns.abs().cumsum(dim=1) / (
+            torch.arange(1, T + 1, device=device).float() + 1e-8
+        )
 
         deltas = []
+
         for t in range(T):
-            path = features[:, max(0, t - 10):t + 1]
+            # --- rolling path ---
+            start = max(0, t - self.window)
+            path = features[:, start:t + 1]              # [B, τ, D]
+
+            # Lead–lag + time augmentation (assumed existing utils)
             path = time_augment(lead_lag(path))
-            path = (path - path.mean(dim=1, keepdim=True)) / (path.std(dim=1, keepdim=True) + 1e-6)
 
-            w = F.softmax(self.gating(torch.stack([H[:, t], vol[:, t]], dim=-1)), dim=-1)
+            # Normalize per path
+            path = (path - path.mean(dim=1, keepdim=True)) / (
+                path.std(dim=1, keepdim=True) + 1e-6
+            )
 
-            sig = 0.0
+            # --- regime weights ---
+            regime = torch.stack([H[:, t], vol[:, t]], dim=-1)
+            w = F.softmax(self.gating(regime), dim=-1)    # [B, max_depth]
+
+            # --- adaptive signature aggregation ---
+            sig_repr = torch.zeros(B, self.hidden_dim, device=device)
+
             for d in range(self.max_depth):
-                s = self.compute_signature(path, d + 1)
-                sig = sig + w[:, d:d + 1] * self.projections[d](s)
+                s = self.compute_signature(path, d + 1)   # [B, variable]
+                s = self.compress_signature(s)            # [B, sig_comp_dim]
+                s = self.sig_projectors[d](s)             # [B, hidden_dim]
+                sig_repr += w[:, d:d + 1] * s
 
-            out = self.head(torch.cat([sig, features[:, t]], dim=-1))
-            deltas.append(self.delta_max * torch.tanh(out))
+            # --- hedge decision ---
+            head_in = torch.cat([sig_repr, features[:, t]], dim=-1)
+            delta = self.delta_max * torch.tanh(self.head(head_in))
+            deltas.append(delta)
 
         return torch.cat(deltas, dim=1)
 
