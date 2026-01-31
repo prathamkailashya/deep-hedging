@@ -482,6 +482,9 @@ def time_augment(path: torch.Tensor) -> torch.Tensor:
 class AdaptiveSignatureHedger(nn.Module):
     def __init__(self, input_dim=5, max_depth=4, hidden_dim=64, delta_max=1.5):
         super().__init__()
+        self.base_dim = input_dim
+        self.path_dim = 2 * input_dim + 1  # lead–lag + time
+
         self.max_depth = max_depth
         self.delta_max = delta_max
 
@@ -489,7 +492,7 @@ class AdaptiveSignatureHedger(nn.Module):
         self.gating = nn.Sequential(nn.Linear(2, 32), nn.ReLU(), nn.Linear(32, max_depth))
 
         self.projections = nn.ModuleList([
-            nn.Linear(self._sig_dim(input_dim + 1, d), hidden_dim)
+            nn.Linear(self._sig_dim(self.path_dim, d), hidden_dim)
             for d in range(1, max_depth + 1)
         ])
 
