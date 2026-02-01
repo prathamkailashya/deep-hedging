@@ -674,11 +674,11 @@ def main():
     args = parser.parse_args()
     
     if args.all:
-        models = ['LSTM', 'Transformer', 'RSE', '3SCH', 'RVSN', 'SAC-CVaR', 'W-DRO-T']
+        models = ['LSTM', 'Transformer', 'RVSN', 'W-DRO-T', 'SAC-CVaR', 'RSE', '3SCH']
     elif args.baselines:
         models = ['LSTM', 'Transformer']
     elif args.novel:
-        models = ['RSE', '3SCH', 'RVSN', 'SAC-CVaR', 'W-DRO-T']
+        models = ['RVSN', 'W-DRO-T', 'SAC-CVaR', 'RSE', '3SCH']
     elif args.model:
         models = [args.model]
     else:
