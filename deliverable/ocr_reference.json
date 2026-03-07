@@ -1,0 +1,129 @@
+{
+  "metadata": {
+    "source": "reference/",
+    "total_files": 270,
+    "extraction_method": "visual_analysis_reference_papers",
+    "date": "2026-03-02",
+    "note": "Reference papers used for citation and theoretical grounding only. Experiments from these papers are NOT documented in our deliverables."
+  },
+  "papers": {
+    "buehler2019_deep_hedging": {
+      "pages": "~30",
+      "key_contributions": [
+        "Semi-recurrent neural network parameterization of hedging policy",
+        "Convex risk measure optimization (entropic risk, CVaR)",
+        "Heston model simulation framework with 80K paths",
+        "Transaction cost incorporation via proportional costs"
+      ],
+      "key_equations": [
+        "P&L(δ) = -Z + Σ δ_k(S_{k+1} - S_k) - TC(δ)",
+        "θ* = argmin_θ ρ(P&L(δ^θ))",
+        "ρ_λ(X) = (1/λ) log E[exp(-λX)]"
+      ],
+      "used_for": "Base framework, training protocol, evaluation metrics"
+    },
+    "kozyra2019_oxford_thesis": {
+      "pages": "~80",
+      "key_contributions": [
+        "Two-stage CVaR→Entropic training protocol",
+        "Delta bounding via tanh(δ_max * raw_delta)",
+        "No-trade band penalty for Stage 2 stability",
+        "RNN/LSTM architecture comparison"
+      ],
+      "key_equations": [
+        "L1 = CVaR_0.95(-P&L)",
+        "L2 = ρ_λ(-P&L) + γ·TradingPenalty + ν·BandPenalty",
+        "BandPenalty = ν Σ max(0, |δ_k - δ_k^ref| - ε)"
+      ],
+      "used_for": "Training protocol baseline, 3SCH extension"
+    },
+    "blanchet2019_wasserstein_dro": {
+      "pages": "~35",
+      "key_contributions": [
+        "Wasserstein DRO duality theory",
+        "Tractable gradient-norm regularization",
+        "Finite-sample performance guarantees",
+        "Connection to Lipschitz continuity"
+      ],
+      "key_equations": [
+        "sup_{W_1(Q,P)≤ε} E_Q[l(X)] = inf_{λ≥0} {λε + E_P[sup_{x'}{l(x') - λ‖X-x'‖}]}",
+        "Gradient penalty: E[l(X)] + ε·E[‖∇_X l(X)‖₂]"
+      ],
+      "used_for": "W-DRO-T theoretical foundation"
+    },
+    "gatheral2018_volatility_rough": {
+      "pages": "~17",
+      "key_contributions": [
+        "Empirical evidence for rough volatility (H ≈ 0.1)",
+        "Variogram-based Hurst parameter estimation",
+        "Rough Bergomi model specification"
+      ],
+      "key_equations": [
+        "V_t = ξ exp(η W^H_t - 0.5 η² t^{2H})",
+        "Cov(W^H_s, W^H_t) = 0.5(|s|^{2H} + |t|^{2H} - |t-s|^{2H})"
+      ],
+      "used_for": "RVSN motivation, rough volatility background"
+    },
+    "lyons1998_rough_paths": {
+      "pages": "~95",
+      "key_contributions": [
+        "Path signature theory",
+        "Universal nonlinearity theorem for signatures",
+        "Controlled differential equations"
+      ],
+      "key_equations": [
+        "S^(m)(X)_{[s,t]} = (1, ∫dX^i, ∫∫dX^i dX^j, ...)"
+      ],
+      "used_for": "Signature-based models theoretical foundation"
+    },
+    "abijaber2023_hedging_signatures": {
+      "pages": "~25",
+      "key_contributions": [
+        "Signatures outperform LSTMs on non-Markovian paths",
+        "Lead-lag transform for antisymmetric terms",
+        "Depth-adaptive signature computation"
+      ],
+      "used_for": "RVSN design, signature hedging theory"
+    },
+    "huang2025_sac_cvar": {
+      "pages": "~12",
+      "key_contributions": [
+        "CVaR constraints via Lagrangian relaxation in SAC",
+        "Distributional critic for tail risk estimation",
+        "Dual gradient ascent for multiplier updates"
+      ],
+      "key_equations": [
+        "max_π E_π[R] + α·H(π) - λ·(CVaR_α(-R) - c)",
+        "λ ← max(0, λ + η_λ·(CVaR - c))"
+      ],
+      "used_for": "SAC-CVaR formulation"
+    },
+    "neagu2025_drl_hedging": {
+      "pages": "~20",
+      "key_contributions": [
+        "Comparison of 8 DRL algorithms for hedging",
+        "MCPG and PPO outperform value-based methods",
+        "Reward shaping for hedging environments"
+      ],
+      "used_for": "RL hedging literature review, SAC-CVaR motivation"
+    },
+    "heston1993_closed_form": {
+      "pages": "~16",
+      "key_contributions": [
+        "Closed-form option pricing under stochastic volatility",
+        "Heston model specification and calibration",
+        "Characteristic function approach"
+      ],
+      "used_for": "Data generation model"
+    },
+    "artzner1999_coherent_risk": {
+      "pages": "~25",
+      "key_contributions": [
+        "Axioms of coherent risk measures",
+        "CVaR as coherent risk measure",
+        "Subadditivity and positive homogeneity"
+      ],
+      "used_for": "Risk measure theoretical foundation"
+    }
+  }
+}

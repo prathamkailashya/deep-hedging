@@ -1,0 +1,232 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Part 1: Sections 1-4 (Introduction, Background, Contributions, Math)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Introduction}
+\label{sec:introduction}
+
+\subsection{Problem Statement}
+
+The hedging of derivative instruments represents a fundamental challenge in quantitative finance. Traditional Black-Scholes delta hedging~\citep{black1973pricing} assumes continuous trading, zero transaction costs, and complete markets---assumptions that fail in practice. Deep hedging~\citep{buehler2019deep} reformulates this as a stochastic optimal control problem solved via neural network function approximation, naturally incorporating market frictions and risk preferences.
+
+Despite significant progress, several fundamental challenges remain. First, \textbf{model uncertainty}: standard deep hedging trains on fixed Heston parameters; distributional shifts during crises degrade performance. Second, \textbf{training instability}: the two-stage CVaR$\to$entropic protocol~\citep{kozyra2019deep} exhibits abrupt objective transitions. Third, \textbf{regime dependence}: different architectures excel in different market conditions, yet single-model deployment is standard.
+
+We address these challenges with three novel approaches:
+\begin{enumerate}[noitemsep,leftmargin=*]
+    \item \textbf{W-DRO-T:} Wasserstein DRO regularization for distributional robustness
+    \item \textbf{3SCH:} Mixed-loss homotopy for smooth training transitions
+    \item \textbf{RSE:} Regime-dependent gating over diverse base hedgers
+\end{enumerate}
+Additionally, we evaluate two exploratory approaches---RVSN (adaptive signatures for rough volatility) and SAC-CVaR (RL with CVaR constraints)---which produced anomalous results requiring further investigation.
+
+\subsection{Market Frictions in Real-World Financial Markets}
+
+Real-world derivative hedging faces multiple frictions absent from classical theory:
+\begin{itemize}[noitemsep]
+    \item \textbf{Transaction costs:} SPY $\approx 3$~bps all-in; NIFTY $\approx 18$~bps (including Securities Transaction Tax at 0.05\%, stamp duty 2--3~bps, wider spreads at 5~bps slippage)
+    \item \textbf{Discrete rebalancing:} Daily hedging at $N=30$ time steps for 30-day options
+    \item \textbf{Model uncertainty:} Heston stochastic volatility parameters shift across market regimes; calibration error persists
+    \item \textbf{Incomplete markets:} Stochastic volatility renders perfect replication impossible
+    \item \textbf{Position limits:} Regulatory and risk constraints bound maximum hedge ratios
+\end{itemize}
+
+Indian equity options (NIFTY, BANKNIFTY) feature particularly challenging conditions: STT of 0.05\% on options premium, wider bid-ask spreads, discrete strikes at 50-point NIFTY intervals, and SEBI position limits. This cost differential fundamentally changes the optimal hedging strategy, favouring low-turnover models.
+
+\subsection{Neural Network Representation of Hedging Policies}
+
+The hedging strategy is parameterised as a neural network policy:
+\begin{equation}
+    \delta_k = \delta_{\max} \cdot \tanh(F_\theta(I_{0:k}, \delta_{k-1})), \qquad \delta_{\max} = 1.5,
+\end{equation}
+where $F_\theta$ is a neural network (LSTM, Transformer, or ensemble) and $I_k = (S_k/S_0, \log(S_k/K), \sqrt{v_k}, \tau_k, \Delta_k^{\mathrm{BS}}) \in \R^5$ is the feature vector. The $\tanh$ bounding ensures $|\delta_k| \leq 1.5$, preventing gradient explosions and enforcing economically sensible position limits. The gradient of the delta output:
+\begin{equation}
+    \frac{\partial \delta_k}{\partial h_k} = \delta_{\max}(1 - \tanh^2(W_\delta h_k + b_\delta)) \cdot W_\delta,
+\end{equation}
+is bounded by $\delta_{\max}\|W_\delta\|$ and vanishes only in the saturated regime.
+
+\subsection{Motivation for Deep Learning in Hedging}
+
+Deep hedging~\citep{buehler2019deep} has emerged as the dominant paradigm for learning optimal hedging policies. However, a fundamental vulnerability persists: models trained on paths from a \emph{fixed} stochastic volatility model degrade under distributional shift. LSTM hedgers trained on normal-regime Heston parameters exhibit CVaR$_{95}$ degradation exceeding $4\times$ under COVID-type volatility.
+
+Our audit of baseline models reveals distinct regime-dependent strengths:
+\begin{itemize}[noitemsep]
+    \item \textbf{LSTM:} Best in stable, trending markets (lowest trading volume)
+    \item \textbf{Transformer:} Best tail risk during volatile periods (attention captures clustering)
+    \item \textbf{Signature models:} Best for path-dependent dynamics (captures path geometry)
+\end{itemize}
+
+%===============================================================
+\section{Background and Literature Review}
+\label{sec:background}
+
+\subsection{Classical Hedging Theory}
+
+Black--Scholes delta hedging prescribes $\delta_t^{\mathrm{BS}} = \Phi(d_1)$ where $d_1 = \frac{\log(S/K)+(r+\sigma^2/2)\tau}{\sigma\sqrt\tau}$. This assumes geometric Brownian motion, continuous trading, zero transaction costs, and market completeness. Under stochastic volatility (Heston model), the market is incomplete and hedging residuals persist.
+
+\subsection{Deep Hedging Framework}
+
+\citet{buehler2019deep} introduced neural-network-parameterised hedging under convex risk measures, demonstrating that learned policies outperform Black--Scholes delta hedging in the presence of transaction costs. \citet{kozyra2019deep} proposed two-stage curriculum training (CVaR pretraining followed by entropic fine-tuning) and introduced delta bounding via $\tanh$ for training stability. \citet{horvath2021deep} extended the framework to rough volatility models. \citet{carbonneau2021deep} applied deep hedging to long-term insurance derivatives.
+
+\subsection{Delta Bounding and Training Stability}
+
+Delta bounding via $\delta_k = \delta_{\max}\tanh(\cdot)$ prevents unbounded positions and stabilises gradient flow during backpropagation through time (BPTT). For the 30-step hedging horizon ($N=30$), vanilla RNNs suffer gradient decay of order $\sim 0.95^{30} \approx 0.21$. The LSTM's gated cell state mitigates this: when the forget gate $f_k \approx 1$, $\partial c_k/\partial c_{k-1} \approx I$, allowing gradients to flow unattenuated. Gradient clipping at $\|\nabla\| \le 5.0$ provides additional stability.
+
+\subsection{Attention Mechanisms and Transformer Architectures}
+
+\citet{vaswani2017attention} introduced the Transformer; applications to financial time series include Informer~\citep{zhou2021informer} and SigFormer~\citep{tong2023sigformer}. For hedging, the causal self-attention mechanism captures long-range dependencies in market features that recurrent networks may miss. The causal mask enforces non-anticipativity: step $k$ cannot attend to future steps $k'>k$.
+
+\textbf{Related DRO work.} \citet{blanchet2019quantifying} established Wasserstein-based DRO theory with tractable gradient-norm duality. \citet{esfahani2018data} proved finite-sample performance guarantees for data-driven DRO. \citet{lutkebohmert2019robust} showed robust approaches reduce hedging error during COVID-type volatility.
+
+\textbf{Related RL work.} \citet{kolm2019dynamic} and \citet{cao2021deep} explored RL approaches. \citet{neagu2025drl} compared eight DRL algorithms. \citet{haarnoja2018soft} introduced SAC; \citet{huang2025sac} added CVaR constraints.
+
+\textbf{Ensembles and regime switching.} \citet{dietterich2000ensemble} established ensemble variance reduction theory. \citet{hamilton1989new} introduced regime-switching models. Our RSE adapts the mixture-of-experts paradigm to hedging.
+
+\subsection{Universal Approximation in Neural Networks}
+
+LSTMs and Transformers are universal approximators for sequential mappings. Path signatures~\citep{lyons1998differential} provide universal features for path-dependent functionals---the signature uniquely determines the path up to tree-like equivalence.
+
+%===============================================================
+\section{Research Contributions}
+\label{sec:contributions}
+
+\subsection{Overview of Studied Architectures}
+
+Seven architectures evaluated: LSTM, Transformer, W-DRO-T, 3SCH, RSE, RVSN, SAC-CVaR. All share identical data pipeline, feature engineering, and two-stage baseline protocol. The experimental framework: 10 independent seeds (42--942), bootstrap CIs (10,000 resamples), Holm--Bonferroni corrected paired tests, real-market validation on SPY and NIFTY across four crisis scenarios.
+
+\subsection{Novel Approaches Introduced}
+
+\begin{table}[H]
+\centering\small
+\caption{Novel approaches: design rationale.}
+\begin{tabular}{@{}lllll@{}}
+\toprule
+\textbf{Model} & \textbf{Gap} & \textbf{Innovation} & \textbf{Theory} & \textbf{Ref.} \\\midrule
+W-DRO-T & Distributional shift & Grad-norm penalty & Wasserstein DRO duality & \citep{blanchet2019quantifying} \\
+3SCH & Training instability & Mixed-loss homotopy & Berge's maximum thm. & \citep{kozyra2019deep} \\
+RSE & Regime dependence & Gated ensemble & Ensemble variance reduction & Gap analysis \\
+RVSN & Rough volatility & Adaptive signatures & \citep{abijaber2023hedging} & Exploratory \\
+SAC-CVaR & RL hedging & Constrained SAC & \citep{huang2025sac} & Exploratory \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Wasserstein DRO Transformer (W-DRO-T)}
+
+W-DRO-T optimises worst-case risk over a Wasserstein ball: $\theta^* = \argmin_\theta \sup_{\QQ: W_1(\QQ,\PP) \leq \varepsilon} \E_\QQ[\rho(\mathrm{P\&L})]$. Via duality~\citep{blanchet2019quantifying}, this reduces to gradient-norm regularisation. Three-phase training: CVaR pretraining $\to$ DRO-annealed entropic ($\varepsilon: 0 \to 0.1$) $\to$ stress testing. Achieves 46\% CVaR improvement during COVID on SPY and 41\% Basel~III/IV capital savings.
+
+\subsubsection{Three-Stage Curriculum Hedger (3SCH)}
+
+3SCH inserts a mixed-loss homotopy $\mathcal{L}(\alpha) = \alpha \cdot \cvar_{0.95} + (1-\alpha) \cdot \rho_\lambda$ with $\alpha: 0.8 \to 0.2$ between CVaR and entropic stages. Justified by Berge's maximum theorem ensuring upper hemicontinuous solution paths. Best NIFTY normal CVaR$_{95}$ of 622.26---optimal for high-cost emerging markets with trading volume of only 0.90.
+
+\subsubsection{Regime-Switching Ensemble (RSE)}
+
+RSE combines frozen LSTM, Transformer, and Signature hedgers via regime-dependent gating. Regime features (RV, trend, momentum, jump) drive a neural classifier mapping to $K=4$ regimes; a learnable affinity matrix $A \in \R^{4 \times 3}$ produces model weights. Best CVaR$_{95} = 3.109 \pm 0.010$ ($-3.29\%$ vs LSTM, $p < 0.0001$, Cohen's $d = -7.41$), lowest CV = 0.30\%.
+
+%===============================================================
+\section{Mathematical Framework}
+\label{sec:math}
+
+\subsection{Market Model}
+
+\subsubsection{Heston Stochastic Volatility Model}
+
+We work on $(\Omega, \F, (\F_t)_{t \in [0,T]}, \PP)$ satisfying the usual conditions (right-continuous, complete), supporting a two-dimensional Brownian motion $(W^S, W^v)$ with $\langle W^S, W^v \rangle_t = \rho\,dt$, $\rho \in (-1,0)$. The Heston model~\citep{heston1993closed}:
+\begin{align}
+    dS_t &= r S_t \, dt + \sqrt{v_t}\, S_t \, dW_t^S, \qquad S_0 > 0, \\
+    dv_t &= \kappa(\theta_v - v_t) \, dt + \xi \sqrt{v_t} \, dW_t^v, \qquad v_0 > 0.
+\end{align}
+
+\begin{remark}[Feller Condition]
+The variance process remains strictly positive when $2\kappa\theta_v > \xi^2$. Our calibration: $2 \times 1.0 \times 0.04 = 0.08 > 0.04 = \xi^2$.
+\end{remark}
+
+\subsubsection{Model Parameters}
+
+$S_0 = K = 100$, $v_0 = 0.04$, $\kappa = 1.0$, $\theta_v = 0.04$, $\xi = 0.2$, $\rho = -0.7$, $r = 0.05$, $T = 30/365$, $N = 30$.
+
+\subsection{Discretisation}
+
+\subsubsection{Euler--Maruyama Scheme}
+
+Full-truncation scheme on equidistant grid $\Delta t = T/N$:
+\begin{align}
+    S_{k+1} &= S_k \exp\!\bigl[(r - \tfrac{1}{2}v_k^+)\Delta t + \sqrt{v_k^+\Delta t}\;\epsilon_k^S\bigr], \\
+    v_{k+1} &= v_k + \kappa(\theta_v - v_k)\Delta t + \xi\sqrt{v_k^+\Delta t}\;\epsilon_k^v,
+\end{align}
+where $v_k^+ = \max(v_k, 0)$ and $(\epsilon_k^S, \epsilon_k^v) \sim \mathcal{N}(0, \Sigma)$ with $\Sigma_{12} = \rho$.
+
+\subsection{Deep Hedging Formulation}
+
+\subsubsection{Hedging P\&L Definition}
+
+For European call payoff $Z = (S_T - K)^+$ with $N = 30$ hedging steps:
+\begin{equation}
+    \mathrm{P\&L}(\delta) = -Z + \sum_{k=0}^{N-1} \delta_k (S_{t_{k+1}} - S_{t_k}) - c_{\mathrm{tc}} \sum_{k=0}^{N} |\delta_k - \delta_{k-1}| S_{t_k}
+\end{equation}
+with $c_{\mathrm{tc}} = 0.001$ and $\delta_{-1} = \delta_N = 0$ (flat entry/exit).
+
+\subsubsection{Neural Policy Parameterisation}
+
+$\theta^* = \argmin_\theta \rho(-\mathrm{P\&L}(\delta^\theta))$ with $\delta_k = \delta_{\max} \cdot \tanh(F_\theta(I_{0:k}, \delta_{k-1}))$, $\delta_{\max} = 1.5$.
+
+\subsubsection{Feature Engineering}
+
+$I_k = (S_k/S_0, \log(S_k/K), \sqrt{v_k}, \tau_k, \Delta_k^{\mathrm{BS}}) \in \R^5$ where $\tau_k = (T-t_k)/T$ is normalised time-to-maturity and $\Delta_k^{\mathrm{BS}}$ is Black--Scholes delta.
+
+\subsection{Risk Measures}
+
+\subsubsection{Conditional Value at Risk (CVaR)}
+
+\begin{definition}[CVaR]
+For loss $L = -\mathrm{P\&L}$ at level $\alpha \in (0,1)$:
+\begin{align}
+    \VaR_\alpha(L) &= \inf\{l \in \R : \PP(L \le l) \ge \alpha\}, \\
+    \cvar_\alpha(L) &= \frac{1}{1-\alpha}\int_\alpha^1 \VaR_u(L)\,du = \E[L \mid L \geq \VaR_\alpha(L)].
+\end{align}
+CVaR is a coherent risk measure~\citep{artzner1999coherent}: monotonicity, translation invariance, positive homogeneity, and subadditivity.
+\end{definition}
+
+\begin{proposition}[Rockafellar--Uryasev Dual~\citep{rockafellar2000optimization}]
+\begin{equation}
+    \cvar_\alpha(L) = \inf_{\nu \in \R}\Bigl\{\nu + \frac{1}{1-\alpha}\,\E\bigl[(L-\nu)^+\bigr]\Bigr\}.
+\end{equation}
+Differentiable in $\theta$ (a.e.), enabling gradient-based optimisation.
+\end{proposition}
+
+\subsubsection{Entropic Risk Measure}
+
+\begin{definition}[Entropic Risk]
+With risk aversion $\lambda > 0$:
+\begin{equation}
+    \rho_\lambda(X) = \frac{1}{\lambda}\log\E[\exp(-\lambda X)].
+\end{equation}
+Dual representation~\citep{follmer2002convex}: $\rho_\lambda(X) = \sup_{\QQ \ll \PP}\{\E_\QQ[-X] - \frac{1}{\lambda}\mathrm{KL}(\QQ\|\PP)\}$.
+\end{definition}
+
+\begin{remark}[CVaR vs.\ Entropic: Qualitative Differences]
+CVaR focuses exclusively on the tail ($\alpha$-quantile and beyond), producing strategies that aggressively protect against worst-case losses but may over-trade. Entropic risk weighs all outcomes exponentially, producing smoother strategies. The abrupt switch between these objectives motivates 3SCH.
+\end{remark}
+
+\subsubsection{Dual Representations of Risk Measures}
+
+\begin{definition}[Generalised DRO Risk]
+Given divergence $D(\QQ\|\PP)$ and radius $\varepsilon > 0$:
+$\rho^D_\varepsilon(X) = \sup_{\QQ: D(\QQ\|\PP) \le \varepsilon} \E_\QQ[-X]$.
+For $D = \mathrm{KL}$: entropic risk ($\varepsilon = 1/\lambda$). For $D = W_1$: Wasserstein DRO.
+\end{definition}
+
+\begin{remark}[Comparison of Ambiguity Sets]
+\textbf{KL ball}: requires $\QQ \ll \PP$, adversary can only \emph{reweight} existing scenarios. \textbf{Wasserstein ball}: does \emph{not} require absolute continuity, adversary can \emph{move} mass to new regions. For crisis hedging, Wasserstein is more appropriate because distributional shifts involve \emph{new} volatility regimes (COVID $\sigma = 65\%$) not seen during training ($\sigma \approx 20\%$).
+\end{remark}
+
+\begin{definition}[$1$-Wasserstein Distance]
+For probability measures $\mu, \nu$ on $(\R^d, \|\cdot\|_2)$:
+\begin{equation}
+    W_1(\mu,\nu) = \inf_{\gamma \in \Gamma(\mu,\nu)} \int \|x-y\|_2\,d\gamma(x,y).
+\end{equation}
+Kantorovich--Rubinstein duality: $W_1(\mu,\nu) = \sup_{\|f\|_{\mathrm{Lip}} \le 1}\{\int f\,d\mu - \int f\,d\nu\}$.
+\end{definition}
+
+\begin{proposition}[Concentration Comparison]
+For $n$ i.i.d.\ samples: $\E[W_1(\hat\PP_n, \PP)] = O(n^{-1/d})$, while $\E[\mathrm{KL}(\hat\PP_n \| \PP)] = +\infty$ for empirical vs.\ continuous measures. Wasserstein has a well-defined finite-sample convergence rate, making it the natural choice for data-driven DRO~\citep{esfahani2018data}.
+\end{proposition}

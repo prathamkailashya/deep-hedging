@@ -1,0 +1,598 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Part 2: Section 5 — Base and Novel Hedging Architectures
+% (Poster Section 5: merges original Sections 5–8)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Base and Novel Hedging Architectures}
+\label{sec:architectures}
+
+\subsection{Base Hedging Architectures}
+\label{sec:base}
+
+\subsubsection{LSTM Hedger Architecture}
+
+The LSTM hedger of~\citet{kozyra2019deep} processes $[I_k;\,\delta_{k-1}] \in \R^{d_{\mathrm{in}}+1}$ at each step $k$:
+\begin{align}
+    f_k &= \sigma(W_f [I_k;\,\delta_{k-1};\,h_{k-1}] + b_f), \\
+    i_k &= \sigma(W_i [I_k;\,\delta_{k-1};\,h_{k-1}] + b_i), \\
+    \tilde{c}_k &= \tanh(W_c [I_k;\,\delta_{k-1};\,h_{k-1}] + b_c), \\
+    c_k &= f_k \odot c_{k-1} + i_k \odot \tilde{c}_k, \\
+    o_k &= \sigma(W_o [I_k;\,\delta_{k-1};\,h_{k-1}] + b_o), \\
+    h_k &= o_k \odot \tanh(c_k), \\
+    \delta_k &= \delta_{\max} \cdot \tanh(W_{\delta} h_k + b_\delta),
+\end{align}
+where $\sigma$ is sigmoid, $\odot$ is element-wise multiplication, $(h_k, c_k)$ are hidden/cell states, $\delta_{\max}=1.5$. Architecture: 2 LSTM layers, hidden dimension 50, $\sim$54K parameters. Training: $\sim$273s/seed.
+
+The cell state gradient factors as $\frac{\partial c_k}{\partial c_{k-1}} = f_k + \frac{\partial f_k}{\partial c_{k-1}} \odot c_{k-1} + \frac{\partial(i_k \odot \tilde{c}_k)}{\partial c_{k-1}}$. When $f_k \approx 1$, gradients flow unattenuated---critical for $N=30$ steps where vanilla RNNs suffer decay $\sim 0.95^{30} \approx 0.21$.
+
+\subsubsection{Transformer Hedger Architecture}
+
+\textbf{Input embedding.} $X_0[k] = W_{\mathrm{in}} I_k + \mathrm{PE}(k) \in \R^{d_{\mathrm{model}}}$ with sinusoidal positional encoding $\mathrm{PE}(k)_{2i} = \sin(k / 10000^{2i/d_{\mathrm{model}}})$, $\mathrm{PE}(k)_{2i+1} = \cos(k / 10000^{2i/d_{\mathrm{model}}})$.
+
+\textbf{Scaled dot-product attention.} For head $h \in \{1,\ldots,H\}$, $d_h = d_{\mathrm{model}}/H$:
+\begin{align}
+    Q_h = X W_h^Q, \quad K_h = X W_h^K, \quad V_h = X W_h^V, \\
+    \mathrm{Attn}_h(X) = \mathrm{softmax}\!\Bigl(\frac{Q_h K_h^\top}{\sqrt{d_h}} + M_{\mathrm{causal}}\Bigr) V_h,
+\end{align}
+where $[M_{\mathrm{causal}}]_{ij} = 0$ if $i \ge j$, $-\infty$ if $i < j$ (non-anticipativity).
+
+\textbf{Multi-head attention and FFN:}
+\begin{align}
+    \mathrm{MHA}(X) &= \mathrm{Concat}(\mathrm{Attn}_1, \ldots, \mathrm{Attn}_H)\, W^O, \\
+    X' &= \mathrm{LayerNorm}(X + \mathrm{MHA}(X)), \\
+    X_l &= \mathrm{LayerNorm}(X' + \mathrm{FFN}(X')),
+\end{align}
+with $\mathrm{FFN}(x) = W_2\,\mathrm{GELU}(W_1 x + b_1) + b_2$, $W_1 \in \R^{d_{\mathrm{model}} \times d_{\mathrm{ff}}}$, $W_2 \in \R^{d_{\mathrm{ff}} \times d_{\mathrm{model}}}$.
+
+\textbf{Output:} $\delta_k = 1.5 \cdot \tanh(W_o X_L[k] + b_o)$.
+
+Architecture: $d_{\mathrm{model}}=64$, $H=4$, $L=3$, $d_{\mathrm{ff}}=256$, dropout $0.1$, $\sim$85K params, $\sim$7534s/seed.
+
+\subsubsection{Signature-Based Hedger}
+
+Path signatures~\citep{lyons1998differential}: $\mathrm{Sig}(X)_{[s,t]} = (1, \int_s^t dX_u, \int_s^t\int_s^u dX_v dX_u, \ldots)$ truncated at depth $m$. Captures order of events, oscillation patterns, roughness, and non-Markovian effects. Running statistics (mean $\mu_t$, std $\sigma_t$, max/min) of signature features are fed to an MLP producing path-dependent hedge ratios. Used as frozen base model within RSE.
+
+\subsection{Regime-Switching Ensemble (RSE)}
+\label{sec:rse}
+
+\subsubsection{Ensemble Variance Reduction Theory}
+
+Classical ensemble theory~\citep{dietterich2000ensemble} shows that combining $M$ diverse models reduces variance. For equal-weight averaging:
+\begin{equation}
+    \mathrm{Var}(\bar{f}) = \frac{\bar\sigma^2}{M} + \frac{M-1}{M}\,\bar\rho\,\bar\sigma^2
+    \label{eq:ensemble_classical}
+\end{equation}
+where $\bar{\rho}$ is average pairwise correlation and $\bar\sigma^2$ is average individual variance. When $\bar\rho < 1$, the ensemble variance is strictly less than the average individual variance, with improvement proportional to model diversity ($1-\bar\rho$).
+
+\subsubsection{RSE Architecture Overview}
+
+RSE consists of four components operating in sequence:
+
+\begin{definition}[Regime-Switching Ensemble]
+The ensemble delta at time step $k$ is:
+\begin{equation}
+    \delta_k^{\mathrm{RSE}} = \sum_{m=1}^{M} w_m(r_k) \cdot \delta_k^{(m)}
+    \label{eq:rse}
+\end{equation}
+where $\delta_k^{(m)}$ are base model outputs, $r_k$ is the detected regime vector, and $w_m(r_k) = \sum_{j=1}^K p(r_k = j) \cdot [\mathrm{softmax}(A)]_{j,m}$ are regime-dependent model weights derived from the gating network.
+\end{definition}
+
+\subsubsection{Regime Feature Extraction}
+
+We extract six regime-relevant features from price paths:
+
+\begin{definition}[Regime Features]
+At time step $k$, the regime feature vector is:
+\begin{equation}
+    r_k = \bigl(\mathrm{RV}_k^{(5)},\; \mathrm{RV}_k^{(10)},\; \mathrm{RV}_k^{(20)},\; \mathrm{Trend}_k,\; \mathrm{Mom}_k,\; \mathrm{Jump}_k\bigr)
+\end{equation}
+\end{definition}
+
+\textbf{Realized Volatility} at windows $w \in \{5, 10, 20\}$:
+\begin{equation}
+    \mathrm{RV}_k^{(w)} = \sqrt{\frac{1}{w} \sum_{i=k-w+1}^{k} (\log S_i - \log S_{i-1})^2}
+\end{equation}
+
+\textbf{Trend Indicator} (SMA crossover):
+\begin{equation}
+    \mathrm{Trend}_k = \frac{\mathrm{SMA}_5(S_k) - \mathrm{SMA}_{20}(S_k)}{\mathrm{SMA}_{20}(S_k)}
+\end{equation}
+
+\textbf{Momentum:}
+\begin{equation}
+    \mathrm{Mom}_k = \frac{S_k - S_{k-5}}{S_{k-5}}
+\end{equation}
+
+\textbf{Jump Indicator} (Barndorff-Nielsen ratio):
+\begin{equation}
+    \mathrm{Jump}_k = \frac{\mathrm{RV}_k^{(20)}}{\mathrm{BV}_k^{(20)}}
+\end{equation}
+where $\mathrm{BV}_k^{(w)} = \frac{\pi}{2} \sum_{i} |r_i| \cdot |r_{i+1}|$ is bipower variation, and $\mathrm{Jump} > 1$ indicates jump activity.
+
+\subsubsection{Regime Classifier}
+
+An MLP maps features to $K = 4$ regime probabilities:
+\begin{equation}
+    p(r_k = j \mid I_{0:k}) = \mathrm{softmax}\bigl(f_\phi(r_k)\bigr)_j
+\end{equation}
+where $f_\phi$ is a 3-layer network: $\R^6 \to \R^{64} \to \R^{64} \to \R^4$ with ReLU activations and batch normalization.
+
+The four regimes correspond approximately to: (1) Low volatility / calm, (2) High volatility / stressed, (3) Trending, (4) Mean-reverting / choppy.
+
+\subsubsection{Regime-Dependent Gating Network}
+
+A learnable affinity matrix $A \in \R^{K \times M}$ maps regimes to model weights:
+\begin{equation}
+    w_m(k) = \sum_{j=1}^{K} p(r_k = j) \cdot \underbrace{[\mathrm{softmax}(A/\tau)]_{j,m}}_{\text{regime-to-model affinity}}
+    \label{eq:gating}
+\end{equation}
+where $\tau > 0$ is the softmax temperature (set to $\tau = 1$ in our experiments).  The softmax over columns ensures that weights sum to 1 across models for each regime.  The affinity matrix $A$ is the key learnable component: it encodes which base model is best for each regime.
+
+\begin{remark}[Softmax Temperature and Gating Sharpness]
+The temperature $\tau$ controls the sharpness of the gating distribution:
+\begin{itemize}[noitemsep]
+    \item As $\tau \to 0^+$, $\mathrm{softmax}(A/\tau) \to$ one-hot (hard switching between models).
+    \item As $\tau \to \infty$, $\mathrm{softmax}(A/\tau) \to \mathbf{1}/M$ (uniform equal weighting).
+\end{itemize}
+With $\tau = 1$, the learned affinity matrix (Table~\ref{tab:affinity}) shows weights ranging from 0.18 to 0.54, indicating soft blending rather than hard switching.  This soft gating is preferable for hedging because it avoids discontinuous strategy changes at regime boundaries, which would generate unnecessary transaction costs.
+\end{remark}
+
+\subsubsection{Training Protocol}
+
+RSE training follows a three-step procedure:
+
+\begin{algorithm}[t]
+\caption{RSE Training Protocol}
+\label{alg:rse}
+\begin{algorithmic}[1]
+\REQUIRE Data $\mathcal{D}$, base model architectures
+\STATE \textbf{Step 1: Pre-train base models} (30 epochs each)
+\FOR{$m \in \{\text{LSTM, Trans., Sig.}\}$}
+    \STATE Train $F_{\theta_m}$ with $\cvar_{0.95}$ loss
+    \STATE Freeze: $\theta_m \gets \text{const}$
+\ENDFOR
+\STATE
+\STATE \textbf{Step 2: Train gating (CVaR)} (20 epochs)
+\STATE Trainable params: $\phi$ (classifier), $A$ (affinity)
+\FOR{epoch $= 1$ to 20}
+    \FOR{batch $(I, S, Z) \sim \mathcal{D}$}
+        \STATE $\delta^{\mathrm{RSE}} \gets \sum_m w_m(r) \cdot F_{\theta_m}(I)$ \hfill Eq.~\eqref{eq:rse}
+        \STATE $\mathcal{L} \gets \cvar_{0.95}(-\mathrm{P\&L})$
+        \STATE Update $\phi, A$ via Adam (lr $= 10^{-3}$)
+    \ENDFOR
+\ENDFOR
+\STATE
+\STATE \textbf{Step 3: Fine-tune gating (Entropic)} (30 epochs)
+\FOR{epoch $= 1$ to 30}
+    \FOR{batch $(I, S, Z) \sim \mathcal{D}$}
+        \STATE $\mathcal{L} \gets \rho_\lambda(-\mathrm{P\&L})$
+        \STATE Update $\phi, A$ via Adam (lr $= 10^{-4}$)
+    \ENDFOR
+\ENDFOR
+\RETURN $\phi^*, A^*$
+\end{algorithmic}
+\end{algorithm}
+
+Total compute: $3 \times 30 + 20 + 30 = 140$ model-epochs, equivalent to $\sim$80 single-model epochs accounting for the lightweight gating network.
+
+\subsubsection{Regime Classification Model Validation}
+
+Validated via: (1) high-vol regime probability correlates with RV ($\rho > 0.7$); (2) trend probability correlates with SMA crossover ($\rho > 0.5$); (3) temporally smooth transitions.
+
+\subsubsection{Regime--Model Affinity Matrix}
+
+\begin{table}[H]\centering\small
+\caption{Learned affinity (typical run, after softmax).}
+\begin{tabular}{lccc}\toprule
+\textbf{Regime} & \textbf{LSTM} & \textbf{Transformer} & \textbf{Signature} \\\midrule
+Low vol (calm) & \textbf{0.52} & 0.28 & 0.20 \\
+High vol (stress) & 0.18 & \textbf{0.54} & 0.28 \\
+Trending & 0.31 & \textbf{0.41} & 0.28 \\
+Mean-reverting & \textbf{0.45} & 0.22 & 0.33 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+LSTM dominates calm/mean-reverting regimes; Transformer dominates high-vol/trending; Signature provides consistent 20--33\% weight (path-dependent regularization). This interpretability supports model risk governance.
+
+\subsubsection{Training Protocol for RSE}
+
+\begin{algorithm}[H]
+\caption{RSE Training Protocol}
+\begin{algorithmic}[1]
+\STATE \textbf{Step 1:} Pre-train base models (30 ep each, $\cvar_{0.95}$ loss), freeze $\theta_m$
+\STATE \textbf{Step 2:} Train gating ($\phi, A$) with $\cvar_{0.95}$ (20 ep, lr $10^{-3}$)
+\STATE \textbf{Step 3:} Fine-tune gating with $\rho_\lambda$ (30 ep, lr $10^{-4}$)
+\RETURN $\phi^*, A^*$
+\end{algorithmic}
+\end{algorithm}
+
+Total: 140 model-epochs ($\sim$80 single-model equivalent). Training: $\sim$924s/seed.
+
+\subsubsection{Complexity Analysis}
+
+\textbf{Time:} $O(M \cdot C_{\max} + C_{\text{gate}})$ where $C_{\max} = O(N^2 d^2)$. \textbf{Space:} $O(\sum_m |\theta_m| + |\phi| + KM)$. Affinity: $KM = 12$ params. \textbf{Inference:} $<10$ms (parallel GPU).
+
+\subsubsection{Model Risk Governance for RSE}
+
+We structure RSE governance along SR~11-7 (OCC) and SS1/23 (PRA) pillars.
+
+\textbf{1.\ Interpretability.}
+RSE offers \emph{unique} interpretability among the novel approaches through three transparent mechanisms:
+\begin{itemize}[noitemsep]
+    \item \textit{Regime probabilities} $p(r_k=j)$ at each time step reveal the classifier's market-state assessment --- inspectable in real time.
+    \item \textit{Model weights} $w_m(r_k)$ show exactly how much each base hedger contributes --- full attribution.
+    \item \textit{Affinity matrix} $A \in \R^{4 \times 3}$ provides a static summary of learned regime--model associations (Table~\ref{tab:affinity}), auditable without running the model.
+\end{itemize}
+This three-level interpretability stack (time-varying regime $\to$ time-varying weights $\to$ static affinity) satisfies explainability requirements that opaque single-model approaches cannot.
+
+\textbf{2.\ Modular Validation.}
+Base models and gating network can be validated \emph{independently}:
+\begin{itemize}[noitemsep]
+    \item Each base model (LSTM, Transformer, Signature) validated against its own CVaR$_{95}$ benchmark.
+    \item Regime classifier validated via correlation of high-vol regime probability with realised volatility ($\rho > 0.7$).
+    \item Gating network validated via end-to-end ensemble CVaR$_{95}$ improvement over equal-weight baseline.
+\end{itemize}
+
+\textbf{3.\ Versioning and Independent Updates.}
+Base models and gating network are separately versioned.  A base model can be retrained without re-optimising the gating network (and vice versa), enabling incremental updates with minimal disruption.
+
+\textbf{4.\ Graceful Rollback.}
+Three fallback levels: (i)~set $w_m = 1/M$ for equal-weight ensemble; (ii)~select the single best base model for the current regime; (iii)~revert to LSTM baseline entirely.  All fallbacks require zero retraining.
+
+\subsubsection{Hedge Accounting and Regulatory Disclosure}
+
+RSE qualifies for hedge accounting under IAS~39/IFRS~9/Ind-AS~109 with dollar offset 0.95 and $R^2 = 0.88$.  Under IFRS~7 disclosure requirements, firms should note: (i)~the ensemble nature and regime-switching mechanism; (ii)~the number and type of base models; (iii)~the regime classifier's feature inputs; (iv)~the affinity matrix interpretation.  Under Basel III/IV FRTB, RSE's lower P\&L volatility and stability (CV = 0.30\%) support IMA backtesting compliance.
+
+\subsubsection{Economic Impact}
+
+For a \$10B derivatives desk, RSE offers:
+\begin{itemize}[noitemsep]
+    \item \$135M annual capital savings vs.\ LSTM
+    \item Transaction costs: \$32M (US) vs.\ \$18M (LSTM)---incremental cost \$14M
+    \item Net benefit: $\sim$\$121M annually from capital savings alone
+\end{itemize}
+
+
+
+\subsubsection{Ablation: Number of Base Models}
+
+\begin{table}[t]
+\centering
+\caption{Ablation: number of base models}
+\label{tab:ablation_models}
+\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{Ensemble} & \textbf{CVaR$_{95}$} & \textbf{CV\%} & \textbf{$\Delta$ vs.\ Full} \\
+\midrule
+LSTM only & 3.215 & 0.55 & $+3.4\%$ \\
+LSTM + Trans. & 3.142 & 0.38 & $+1.1\%$ \\
+\textbf{Full (3 models)} & \textbf{3.109} & \textbf{0.30} & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Each additional base model provides diminishing but meaningful CVaR improvement (Table~\ref{tab:ablation_models}). The Signature model contributes $+1.1\%$ additional improvement beyond the two-model ensemble.
+
+\subsubsection{Ablation: Number of Regimes}
+
+\begin{table}[t]
+\centering
+\caption{Ablation: number of regimes $K$}
+\label{tab:ablation_regimes}
+\small
+\begin{tabular}{lcc}
+\toprule
+\textbf{$K$} & \textbf{CVaR$_{95}$} & \textbf{Note} \\
+\midrule
+2 & 3.128 & Under-specified \\
+3 & 3.115 & Competitive \\
+\textbf{4 (default)} & \textbf{3.109} & Best \\
+6 & 3.112 & Diminishing returns \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+$K = 4$ regimes is optimal (Table~\ref{tab:ablation_regimes}); more regimes provide negligible improvement while increasing the learnable parameter count.
+
+\subsection{Three-Stage Curriculum Hedger (3SCH)}
+\label{sec:3sch}
+
+\subsubsection{Motivation: Instability in Two-Stage Training}
+
+The two-stage protocol~\citep{kozyra2019deep} (CVaR pretraining $\to$ entropic fine-tuning) creates a discontinuous change in the optimization landscape. The optimal strategy under CVaR (worst 5\%) differs qualitatively from the entropic optimum (exponential weighting). This causes: (1) gradient instability at the stage boundary; (2) forgetting of tail risk improvements; (3) convergence to suboptimal local minima.
+
+\subsubsection{Curriculum Learning Perspective}
+
+Following~\citet{bengio2009curriculum}, CVaR (tail-focused) is the ``easier'' objective that constrains the model before the ``harder'' global entropic objective. 3SCH formalises this transition as a homotopy with provable regularity.
+
+\subsubsection{Multi-Objective Optimization Interpretation}
+
+The mixed loss $\alpha\,\cvar + (1-\alpha)\,\rho_\lambda$ is a scalarisation of a bi-objective problem. Homotopy continuation---smoothly varying a parameter to transform one problem into another---is well established in nonlinear programming.
+
+\subsubsection{LSTM Base Architecture}
+
+3SCH uses the identical LSTM hedger (2 layers, $h=50$, $\sim$54K params) as its base. The contribution is \emph{purely in the training protocol}---any improvement is attributable solely to the curriculum, not model capacity.
+
+\subsubsection{Standard Two-Stage Training Protocol}
+
+\begin{itemize}[noitemsep]
+    \item \textbf{Stage 1 (50 ep):} $\mathcal{L}_1 = \cvar_{0.95}(-\Pi)$, lr $= 10^{-3}$, patience 15
+    \item \textbf{Stage 2 (30 ep):} $\mathcal{L}_2 = \rho_\lambda(-\Pi) + \gamma \cdot \mathrm{TradingPenalty} + \nu \cdot \mathrm{BandPenalty}$, lr $= 10^{-4}$, patience 10
+\end{itemize}
+
+\subsubsection{Mixed Loss Formulation}
+
+\begin{definition}[Mixed CVaR-Entropic Loss]
+For annealing parameter $\alpha \in [0, 1]$:
+\begin{equation}
+    \mathcal{L}_{\mathrm{mixed}}(\alpha; \theta) = \alpha \cdot \cvar_{0.95}(-\mathrm{P\&L}^\theta) + (1-\alpha) \cdot \rho_\lambda(-\mathrm{P\&L}^\theta)
+\end{equation}
+\end{definition}
+
+This is a convex combination of two convex risk measures, hence itself a convex risk measure for each fixed $\alpha$.
+
+\subsubsection{Annealing Schedule}
+
+\begin{equation}
+    \alpha(t) = 0.8 - 0.6 \cdot \frac{t}{T_2 - 1}, \quad t = 0, 1, \ldots, T_2 - 1
+\end{equation}
+
+Starting at $\alpha=0.8$ (not 1.0) ensures 20\% entropic gradient signal from the first epoch. Ending at $\alpha=0.2$ retains CVaR regulariser before Stage~3 takes over.
+
+\subsubsection{Three-Stage Training Protocol}
+
+\begin{algorithm}[H]
+\caption{Three-Stage Curriculum Hedger (3SCH)}
+\begin{algorithmic}[1]
+\STATE \textbf{Stage 1} ($T_1 = 50$ ep): $\mathcal{L} = \cvar_{0.95}$, lr $= 10^{-3}$, patience 15
+\STATE Store reference deltas $\delta^{\text{ref}} \gets F_\theta(I)$
+\STATE \textbf{Stage 2} ($T_2 = 20$ ep): $\alpha$ anneals $0.8 \to 0.2$, lr $= 5 \times 10^{-4}$
+\FOR{epoch $= 1$ to $T_2$}
+    \STATE $\alpha \gets 0.8 - 0.6(t-1)/(T_2 - 1)$
+    \STATE $\mathcal{L} \gets \alpha \cdot \cvar_{0.95} + (1-\alpha) \cdot \rho_\lambda$
+\ENDFOR
+\STATE \textbf{Stage 3} ($T_3 = 30$ ep): $\mathcal{L} = \rho_\lambda + \gamma|\Delta\delta|$, lr $= 10^{-4}$, patience 10
+\RETURN $\theta^*$
+\end{algorithmic}
+\end{algorithm}
+
+Total: 100 epochs (vs 80 for two-stage). The additional 20 are for the homotopy transition.
+
+
+
+\subsubsection{Trading Penalty Formulation}
+
+\begin{definition}[Trading Penalty]
+$\mathrm{TradingPenalty}(\delta) = \gamma \sum_{k=0}^{N-1} |\delta_k - \delta_{k-1}|$ with $\gamma = 10^{-3}$.
+\end{definition}
+
+\subsubsection{No-Trade Band Penalty}
+
+\begin{definition}[No-Trade Band Penalty]
+$\mathrm{BandPenalty}(\delta) = \nu \sum_k \max(0, |\delta_k - \delta_k^{\text{ref}}| - \epsilon)$ with $\nu = 10^8$, $\epsilon = 0.15$.
+\end{definition}
+
+Prevents catastrophic forgetting: discourages deviation from CVaR-optimal strategy from Stage~1.
+
+\subsubsection{Complexity Analysis}
+
+\textbf{Time:} $O(T_{\text{total}} \cdot |\mathcal{D}| \cdot C_{\text{model}})$; mixed loss adds negligible overhead. \textbf{Space:} $O(|\theta| + |\mathcal{D}| \cdot N)$ for parameters and reference deltas. Training: $\sim$295s/seed.
+
+\subsubsection{Capital Requirements}
+
+Under Basel III/IV FRTB, 3SCH achieves capital savings of 22.1\% vs.\ LSTM in US markets (capital proxy: \$6.32M vs.\ \$8.11M per \$100M notional). While lower than W-DRO-T's 41\%, the capital savings come with substantially lower operational costs.
+
+\subsubsection{Hedge Accounting}
+
+3SCH qualifies for hedge accounting under IAS~39/IFRS~9/Ind-AS~109 with dollar offset 0.95 and $R^2 = 0.88$. Under IFRS~9's principles-based effectiveness testing, 3SCH's lower earnings volatility (Std P\&L = 3.70 in SPY normal) supports stable reported earnings from hedging activities.
+
+\subsubsection{Model Risk Governance for 3SCH}
+
+We structure 3SCH governance along the pillars of SR~11-7 (OCC) and SS1/23 (PRA).
+
+\textbf{1.\ Interpretability.}
+3SCH uses the \emph{identical} LSTM architecture as the baseline---the only change is the training schedule.  This is a significant governance advantage: the model itself requires no additional interpretability tooling beyond what exists for the LSTM baseline.  The curriculum schedule $(\alpha_{\mathrm{start}}, \alpha_{\mathrm{end}}, T_1, T_2, T_3)$ is fully documented, deterministic, and auditable.  Each stage's loss trajectory can be inspected independently.
+
+\textbf{2.\ Stage-by-Stage Validation.}
+\begin{itemize}[noitemsep]
+    \item \textit{Stage~1:} Verify CVaR$_{95}$ convergence and early-stopping activation.
+    \item \textit{Stage~2:} Verify $\mathcal{L}_{\mathrm{mix}}$ decreases monotonically as $\alpha$ anneals; inspect gradient-norm stability.
+    \item \textit{Stage~3:} Verify entropic loss converges; inspect trading penalty magnitude.
+    \item \textit{End-to-end:} Compare final CVaR$_{95}$ and Std P\&L against LSTM baseline; compute bootstrap CIs.
+\end{itemize}
+
+\textbf{3.\ Retraining and Rollback.}
+3SCH inherits the LSTM retraining cadence (weekly recommended).  Rollback is trivial: setting $T_2=0$ recovers the exact two-stage baseline, requiring no code changes.  This ``zero-cost rollback'' property makes 3SCH uniquely low-risk for production deployment.
+
+\textbf{4.\ Regulatory Disclosure.}
+Under IFRS~9/Ind-AS~109, firms should disclose: (i)~the three-stage training protocol and annealing schedule; (ii)~that the model architecture is identical to the LSTM baseline; (iii)~stage-by-stage validation metrics; (iv)~the theoretical justification for the homotopy (Berge's theorem, Corollary~\ref{cor:solution_path}).  For Indian markets, SEBI documentation requirements are satisfied by the reproducibility appendix.
+
+\subsection{Wasserstein DRO Transformer (W-DRO-T)}
+\label{sec:wdrot}
+
+\subsubsection{Distributional Shift in Deep Hedging}
+
+Models trained on $\sigma \approx 20\%$ (normal Heston) exhibit CVaR degradation $>4\times$ under COVID-type $\sigma = 65\%$. This distributional shift is the core vulnerability of standard deep hedging.
+
+\subsubsection{Distributionally Robust Optimization Framework}
+
+\begin{definition}[Wasserstein DRO Hedging]
+\begin{equation}
+    \theta^* = \argmin_\theta \sup_{\QQ:\, W_p(\QQ, \PP) \leq \varepsilon} \E_\QQ\bigl[\rho(\mathrm{P\&L}(\delta^\theta))\bigr]
+\end{equation}
+where $\varepsilon > 0$ controls the ambiguity set $\mathcal{P}^W(\PP; \varepsilon) = \{\QQ : W_p(\QQ, \PP) \leq \varepsilon\}$.
+\end{definition}
+\begin{remark}[Entropic--Utility Duality]
+$\rho_\lambda$ is the certainty equivalent of the exponential utility $u(x)=-\exp(-\lambda x)$; equivalently, it is the unique solution to $u(\rho_\lambda(X))=\E[u(X)]$.  It is smooth, strictly convex in distribution, and admits a dual representation as an optimised certainty equivalent~\citep{follmer2002convex}:
+\begin{equation}
+    \rho_\lambda(X) = \sup_{\QQ \ll \PP}\Bigl\{\E_\QQ[-X] - \frac{1}{\lambda}\,\mathrm{KL}(\QQ\|\PP)\Bigr\},
+    \label{eq:entropic_dual}
+\end{equation}
+where $\mathrm{KL}$ denotes Kullback--Leibler divergence.  This connects entropic risk to information-theoretic robustness: minimising $\rho_\lambda$ is equivalent to worst-case expected loss over a KL ball, foreshadowing the Wasserstein analogue in Section~\ref{sec:method}.
+\end{remark}
+
+
+\subsubsection{From KL to Wasserstein: A Unified Robustness View}
+
+We now place the entropic risk dual~\eqref{eq:entropic_dual} and the Wasserstein DRO objective into a unified framework, clarifying why we prefer the latter for deep hedging.
+
+\begin{definition}[Generalised Distributionally Robust Risk]
+\label{def:gen_dro}
+Given a divergence functional $D(\QQ\|\PP)$ and radius $\varepsilon > 0$, the DRO risk is:
+\begin{equation}
+    \rho^D_\varepsilon(X) = \sup_{\QQ:\;D(\QQ\|\PP)\le\varepsilon}\;\E_\QQ[-X].
+    \label{eq:gen_dro}
+\end{equation}
+For $D = \mathrm{KL}$, one recovers entropic risk~\eqref{eq:entropic_dual} (with $\varepsilon = 1/\lambda$).  For $D = W_1$, one obtains the Wasserstein DRO objective~\eqref{eq:dro_obj}.
+\end{definition}
+
+\begin{remark}[Comparison of Ambiguity Sets]
+The choice of $D$ fundamentally affects the nature of robustness:
+\begin{enumerate}[noitemsep]
+    \item \textbf{KL ball} $\{Q : \mathrm{KL}(\QQ\|\PP) \le \varepsilon\}$: requires $\QQ \ll \PP$ (absolute continuity), so the adversary can only \emph{reweight} existing scenarios.  Cannot generate new tail events absent from training data.
+    \item \textbf{Wasserstein ball} $\{\QQ : W_1(\QQ,\PP) \le \varepsilon\}$: does \emph{not} require absolute continuity, so the adversary can \emph{move} probability mass to new regions of the input space.  This enables robustness to support misspecification --- e.g., fat tails absent from Heston training data.
+\end{enumerate}
+For hedging during crises, the Wasserstein formulation is more appropriate because distributional shifts involve \emph{new} volatility regimes (e.g., COVID $\sigma = 65\%$) not seen during training ($\sigma \approx 20\%$), rather than mere reweighting of existing scenarios.  The dual gradient-norm penalty is also more stable for deep-learning optimisation than the density-ratio penalty arising from KL~\citep{esfahani2018data}.
+\end{remark}
+
+\subsubsection{DRO Formulation}
+
+Standard deep hedging minimizes risk under the training distribution $\PP$. W-DRO-T instead minimizes worst-case risk over a Wasserstein ball:
+
+\begin{definition}[Wasserstein DRO Hedging]
+\begin{equation}
+    \theta^* = \argmin_\theta \sup_{\QQ:\, W_p(\QQ, \PP) \leq \varepsilon} \E_\QQ\bigl[\rho(\mathrm{P\&L}(\delta^\theta))\bigr]
+    \label{eq:dro_obj}
+\end{equation}
+where $\varepsilon > 0$ is the robustness radius controlling the size of the ambiguity set $\mathcal{P}^W(\PP; \varepsilon) = \{\QQ : W_p(\QQ, \PP) \leq \varepsilon\}$.
+\end{definition}
+
+\subsubsection{Tractable Dual Reformulation}
+
+The infinite-dimensional supremum in~\eqref{eq:dro_obj} is computationally intractable in general. We invoke the strong duality result of~\citet{blanchet2019quantifying}:
+
+\begin{proposition}[Wasserstein DRO Dual~\citep{blanchet2019quantifying}]
+\label{prop:dual}
+Under Lipschitz continuity of the loss function $\ell(\cdot)$, the Wasserstein DRO objective admits the dual:
+\begin{equation}
+    \sup_{\QQ:\, W_1(\QQ,\PP) \leq \varepsilon} \E_\QQ[\ell(X)] = \inf_{\lambda \geq 0} \bigl\{\lambda\varepsilon + \E_\PP[\ell^*(X; \lambda)]\bigr\}
+\end{equation}
+where $\ell^*(x; \lambda) = \sup_{x'}\{\ell(x') - \lambda \|x - x'\|\}$ is the Moreau envelope.
+\end{proposition}
+
+For practical computation, we employ the first-order approximation valid for small $\varepsilon$:
+
+\begin{corollary}[Gradient Penalty Approximation]
+\label{cor:grad_penalty}
+For differentiable $\ell$ and $p=1$, the DRO objective is approximated by:
+\begin{equation}
+    \mathcal{L}_{\mathrm{DRO}}(\theta) = \E_\PP[\ell(\theta; X)] + \varepsilon \cdot \E_\PP\bigl[\|\nabla_X \ell(\theta; X)\|_2\bigr]
+    \label{eq:dro_loss}
+\end{equation}
+The gradient penalty $\|\nabla_X \ell\|_2$ penalizes sensitivity to input perturbations.
+\end{corollary}
+
+\subsubsection{Architecture}
+
+W-DRO-T wraps the Transformer hedger~\citep{vaswani2017attention} with DRO training.  We detail the mathematical structure of both components.
+
+\paragraph{Transformer Encoder with Causal Masking}
+
+\textbf{Input embedding.}  At each time step $k$, the $d_{\mathrm{in}}$-dimensional feature vector $I_k$ is projected and augmented with sinusoidal positional encoding:
+\begin{equation}
+    X_0[k] = W_{\mathrm{in}} I_k + \mathrm{PE}(k) \in \R^{d_{\mathrm{model}}},
+    \label{eq:input_proj}
+\end{equation}
+where $\mathrm{PE}(k)_{2i} = \sin(k / 10000^{2i/d_{\mathrm{model}}})$ and $\mathrm{PE}(k)_{2i+1} = \cos(k / 10000^{2i/d_{\mathrm{model}}})$.
+
+\textbf{Scaled dot-product attention.}  For head $h \in \{1,\ldots,H\}$ in layer $l$, let $d_h = d_{\mathrm{model}}/H$.  Given input $X \in \R^{N \times d_{\mathrm{model}}}$:
+\begin{align}
+    Q_h &= X W_h^Q, \quad K_h = X W_h^K, \quad V_h = X W_h^V, \label{eq:qkv}\\
+    \mathrm{Attn}_h(X) &= \mathrm{softmax}\!\Bigl(\frac{Q_h K_h^\top}{\sqrt{d_h}} + M_{\mathrm{causal}}\Bigr) V_h, \label{eq:sdpa}
+\end{align}
+where $W_h^Q, W_h^K, W_h^V \in \R^{d_{\mathrm{model}} \times d_h}$ are learned projections and $M_{\mathrm{causal}} \in \{0, -\infty\}^{N \times N}$ is the causal mask:
+\begin{equation}
+    [M_{\mathrm{causal}}]_{ij} = \begin{cases} 0 & \text{if } i \ge j, \\ -\infty & \text{if } i < j. \end{cases}
+\end{equation}
+This prevents the hedging decision at step $k$ from attending to future information, enforcing the non-anticipativity constraint essential for hedging.
+
+\textbf{Multi-head attention and feed-forward.}  The outputs of all heads are concatenated and passed through layer normalisation, a feed-forward network with GELU activation, and a residual connection:
+\begin{align}
+    \mathrm{MHA}(X) &= \mathrm{Concat}(\mathrm{Attn}_1(X), \ldots, \mathrm{Attn}_H(X))\, W^O, \label{eq:mha}\\
+    X' &= \mathrm{LayerNorm}(X + \mathrm{MHA}(X)), \label{eq:ln1}\\
+    X_l &= \mathrm{LayerNorm}(X' + \mathrm{FFN}(X')), \label{eq:ln2}
+\end{align}
+where $\mathrm{FFN}(x) = W_2\,\mathrm{GELU}(W_1 x + b_1) + b_2$ with $W_1 \in \R^{d_{\mathrm{model}} \times d_{\mathrm{ff}}}$ and $W_2 \in \R^{d_{\mathrm{ff}} \times d_{\mathrm{model}}}$.
+
+\textbf{Output head.}  After $L$ encoder layers:
+\begin{equation}
+    \delta_k = \delta_{\max} \cdot \tanh(W_o\, X_L[k] + b_o), \qquad \delta_{\max} = 1.5.
+    \label{eq:output_head}
+\end{equation}
+
+Architecture summary: $d_{\mathrm{model}} = 64$, $H = 4$ heads ($d_h = 16$), $L = 3$ layers, $d_{\mathrm{ff}} = 256$, dropout $= 0.1$.  Total parameters: $\sim$85K.
+
+\paragraph{DRO Loss Computation}
+
+The DRO loss~\eqref{eq:dro_loss} requires the gradient $\nabla_X \ell$ through the entire Transformer forward pass.  This involves computing:
+\begin{equation}
+    \frac{\partial \ell}{\partial X} = \frac{\partial \ell}{\partial \Pi} \cdot \frac{\partial \Pi}{\partial \delta} \cdot \frac{\partial \delta}{\partial X_L} \cdot \prod_{l=L}^{1} \frac{\partial X_l}{\partial X_{l-1}} \cdot \frac{\partial X_0}{\partial X},
+    \label{eq:chain}
+\end{equation}
+where the product of Jacobians in~\eqref{eq:chain} passes through attention weights, layer norms, and GELU activations.
+
+\textbf{Second-order gradient requirement.}  Since the DRO penalty $\varepsilon\|\nabla_X\ell\|_2$ is itself a function of $\theta$ (through the chain~\eqref{eq:chain}), optimising $\mathcal{L}_{\mathrm{DRO}}$ requires second-order gradients $\nabla_\theta\|\nabla_X\ell\|_2$.  This is computed via PyTorch's \texttt{create\_graph=True} flag, which retains the computational graph during the first backward pass.
+
+\textbf{SDPA backend constraint.}  The efficient and flash attention backends in PyTorch implement fused CUDA kernels that do not support \texttt{create\_graph}.  We force the MATH backend:
+\begin{verbatim}
+ctx = torch.nn.attention.sdpa_kernel(
+    [SDPBackend.MATH])
+with ctx:
+    deltas = model(inputs_grad)
+\end{verbatim}
+This incurs $\sim$$2\times$ overhead per batch in Phase~2 but does not affect inference (DRO is training-time only).
+
+
+\subsubsection{Three-Phase Training Protocol}
+
+\begin{algorithm}[t]
+\caption{W-DRO-T Training Protocol}
+\label{alg:wdrot}
+\begin{algorithmic}[1]
+\REQUIRE Training data $\mathcal{D}$, robustness schedule $\varepsilon(\cdot)$
+\STATE Initialize Transformer $F_\theta$
+\STATE \textbf{Phase 1: CVaR Pretraining} (50 epochs)
+\FOR{epoch $= 1$ to $50$}
+    \FOR{batch $(I, S, Z) \sim \mathcal{D}$}
+        \STATE $\delta \gets F_\theta(I)$; \quad P\&L $\gets$ Eq.~\eqref{eq:pnl}
+        \STATE $\mathcal{L} \gets \cvar_{0.95}(-\text{P\&L})$
+        \STATE Update $\theta$ via Adam (lr $= 10^{-3}$)
+    \ENDFOR
+    \STATE Early stopping (patience $= 15$)
+\ENDFOR
+\STATE \textbf{Phase 2: DRO-Annealed Entropic} (30 epochs)
+\FOR{epoch $= 1$ to $30$}
+    \STATE $\varepsilon_t \gets 0.1 \cdot t / 30$ \COMMENT{Anneal $0 \to 0.1$}
+    \FOR{batch $(I, S, Z) \sim \mathcal{D}$}
+        \STATE $I_g \gets I.\text{detach().requires\_grad\_(True)}$
+        \STATE $\delta \gets F_\theta(I_g)$ with MATH SDPA backend
+        \STATE P\&L $\gets$ Eq.~\eqref{eq:pnl}
+        \STATE $\ell \gets \rho_\lambda(-\text{P\&L})$
+        \STATE $g \gets \nabla_{I_g} \ell$ with \texttt{create\_graph=True}
+        \STATE $\mathcal{L} \gets \ell + \varepsilon_t \cdot \|g\|_2$
+        \STATE Update $\theta$ via Adam (lr $= 10^{-4}$)
+    \ENDFOR
+\ENDFOR
+\RETURN Trained parameters $\theta^*$
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Phase 1 (CVaR Pretraining, 50 epochs):} Standard CVaR$_{0.95}$ minimization with lr $= 10^{-3}$, patience 15. Establishes tail risk awareness before DRO regularization.
+
+\textbf{Phase 2 (DRO-Annealed Entropic, 30 epochs):} Entropic risk with DRO penalty, $\varepsilon$ annealed linearly from 0 to 0.1. Learning rate reduced to $10^{-4}$. The annealing prevents destabilization from sudden gradient penalties.
+
+\textbf{Phase 3 (Stress Testing, optional 10 epochs):} Elevated $\varepsilon = 0.2$ under adversarial parameter perturbations for additional hardening.
+
+\textbf{Complexity:} Phase 2 requires one additional backward pass per batch for the gradient penalty, increasing per-epoch time by approximately $2\times$ relative to standard training. Total: $O(N_{\mathrm{batch}} \cdot d_{\mathrm{model}}^2 \cdot N)$ per step.

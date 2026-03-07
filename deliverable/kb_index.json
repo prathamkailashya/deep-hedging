@@ -1,0 +1,185 @@
+{
+  "metadata": {
+    "title": "Deep Hedging Knowledge Base Index",
+    "author": "Pratham Kailasiya, IIT Roorkee",
+    "date": "2026-03-02",
+    "description": "Searchable index cross-linking formulas, algorithms, hyperparameters, and experimental results to repository files."
+  },
+  "models": {
+    "W-DRO-T": {
+      "description": "Wasserstein DRO Transformer - distributionally robust deep hedging via gradient-norm regularization",
+      "code_path": "new_approaches/code/w_dro_t.py",
+      "key_classes": ["WassersteinDROLoss (line 30)", "WDROTransformerHedger (line 148)", "WDROTrainer (line 218)"],
+      "key_equations": {
+        "dro_loss": "L_DRO(θ) = E[l(θ;X)] + ε·E[‖∇_X l(θ;X)‖₂]",
+        "source": "Blanchet & Murthy 2019, Corollary 1"
+      },
+      "hyperparameters": {
+        "d_model": 64, "n_heads": 4, "n_layers": 3, "d_ff": 256,
+        "epsilon": 0.1, "delta_max": 1.5, "dropout": 0.1
+      },
+      "training": {
+        "phase1": "CVaR pretraining, 50 epochs, lr=1e-3",
+        "phase2": "Entropic + DRO, 30 epochs, lr=1e-4, ε annealed 0→0.1"
+      },
+      "results": {
+        "cvar95_simulated": "3.227 ± 0.024",
+        "cvar95_spy_normal": 11.98,
+        "cvar95_spy_covid": 46.94,
+        "cvar95_spy_2008": 62.26,
+        "capital_savings_vs_lstm": "41%",
+        "train_time_per_seed": "7119s"
+      },
+      "figures": ["866cd18f-02.png", "866cd18f-03.png", "866cd18f-04.png"]
+    },
+    "3SCH": {
+      "description": "Three-Stage Curriculum Hedger - mixed CVaR-entropic homotopy for smooth training transition",
+      "code_path": "new_approaches/code/three_stage.py",
+      "key_classes": ["MixedLoss (line 28)", "TradingPenalty (line 71)", "NoTradeBandPenalty (line 100)", "ThreeStageTrainer (line 135)"],
+      "key_equations": {
+        "mixed_loss": "L_mixed(α) = α·CVaR_0.95 + (1-α)·ρ_λ",
+        "annealing": "α(t) = 0.8 - 0.6·t/(T₂-1)"
+      },
+      "hyperparameters": {
+        "epochs_stage1": 40, "epochs_stage2": 15, "epochs_stage3": 25,
+        "alpha_start": 0.8, "alpha_end": 0.2,
+        "lr_stage1": "1e-3", "lr_stage2": "5e-4", "lr_stage3": "1e-4",
+        "gamma": "1e-3", "nu": "1e8", "epsilon_band": 0.15
+      },
+      "results": {
+        "cvar95_simulated": "3.219 ± 0.022",
+        "cvar95_nifty_normal": 622.26,
+        "cvar95_spy_normal": 15.79,
+        "trade_volume": 0.87,
+        "train_time_per_seed": "295s"
+      },
+      "figures": ["866cd18f-09.png", "866cd18f-10.png"]
+    },
+    "RSE": {
+      "description": "Regime-Switching Ensemble - adaptive combination of LSTM, Transformer, Signature hedgers via regime-dependent gating",
+      "code_path": "new_approaches/code/rse.py",
+      "key_classes": ["RegimeFeatureExtractor (line 42)", "RegimeClassifier (line 142)", "RegimeSwitchingEnsemble (line 323)", "RSETrainer (line 454)"],
+      "key_equations": {
+        "ensemble": "δ_k^RSE = Σ_m w_m(r_k)·δ_k^(m)",
+        "weights": "w_m(k) = Σ_j p(r_k=j)·softmax(A)_{j,m}"
+      },
+      "hyperparameters": {
+        "n_regimes": 4, "n_models": 3, "classifier_hidden": 64,
+        "rv_windows": [5, 10, 20],
+        "pretrain_epochs": 30, "gating_cvar_epochs": 20, "gating_entropic_epochs": 30
+      },
+      "results": {
+        "cvar95_simulated": "3.109 ± 0.010",
+        "vs_lstm_pct": "-3.29%",
+        "vs_lstm_p": "<0.0001",
+        "vs_lstm_d": "-7.41",
+        "cv_pct": 0.30,
+        "train_time_per_seed": "924s"
+      },
+      "figures": ["866cd18f-11.png", "866cd18f-12.png", "866cd18f-13.png"]
+    },
+    "LSTM": {
+      "description": "LSTM baseline hedger following Buehler et al. (2019) and Kozyra (2019)",
+      "code_path": "src/models/kozyra_models.py",
+      "hyperparameters": {
+        "hidden_size": 50, "num_layers": 2, "delta_max": 1.5
+      },
+      "results": {
+        "cvar95_simulated": "3.215 ± 0.018",
+        "cv_pct": 0.55,
+        "train_time_per_seed": "273s"
+      }
+    },
+    "Transformer": {
+      "description": "Transformer encoder hedger with causal masking",
+      "code_path": "src/models/transformer.py",
+      "hyperparameters": {
+        "d_model": 64, "n_heads": 4, "n_layers": 3, "d_ff": 256
+      },
+      "results": {
+        "cvar95_simulated": "3.234 ± 0.030",
+        "cv_pct": 0.92,
+        "train_time_per_seed": "7534s"
+      }
+    },
+    "RVSN": {
+      "description": "Rough Volatility Signature Network - adaptive signatures for non-Markovian dynamics (ANOMALOUS)",
+      "code_path": "new_approaches/code/rvsn.py",
+      "status": "anomalous",
+      "results": {
+        "cvar95_simulated": "0.443 ± 0.265",
+        "cv_pct": 59.76,
+        "note": "Positive mean P&L suggests biased hedges. Requires investigation."
+      }
+    },
+    "SAC-CVaR": {
+      "description": "CVaR-Constrained Soft Actor-Critic - RL with explicit tail risk constraints (ANOMALOUS)",
+      "code_path": "new_approaches/code/sac_cvar.py",
+      "status": "anomalous",
+      "results": {
+        "cvar95_simulated": "14.933 ± 2.818",
+        "cv_pct": 18.87,
+        "note": "RL agent not learning effective policy. Requires hyperparameter tuning."
+      }
+    }
+  },
+  "experiments": {
+    "main_experiment": {
+      "description": "Full model comparison with 10 seeds",
+      "script": "new_approaches/experiments/run_full_experiments.py",
+      "results_file": "new_approaches/results/audit_summary.json",
+      "seeds": [42, 142, 242, 342, 442, 542, 642, 742, 842, 942],
+      "n_train": 50000, "n_val": 10000, "n_test": 20000,
+      "total_runs": 70
+    },
+    "statistical_analysis": {
+      "description": "Bootstrap CIs and paired tests",
+      "script": "new_approaches/experiments/analyze_results.py",
+      "results_file": "new_approaches/results/statistical_analysis.json",
+      "bootstrap_resamples": 10000,
+      "correction": "Holm-Bonferroni",
+      "alpha": 0.05
+    },
+    "real_market_validation": {
+      "description": "SPY and NIFTY crisis testing",
+      "script": "new_approaches/experiments/extended_real_market_validation.py",
+      "results_file": "new_approaches/results/extended_real_market_validation.json",
+      "markets": ["SPY (3 bps)", "NIFTY (18 bps)"],
+      "scenarios": ["Normal 2019", "Post-COVID 2021", "COVID 2020", "2008 Crisis"]
+    },
+    "baseline_experiments": {
+      "description": "Original baseline experiments (Buehler, Kozyra replication)",
+      "script": "experiments/run_experiments.py",
+      "results_file": "experiments/results/results.json"
+    }
+  },
+  "data_generation": {
+    "heston_model": {
+      "script": "src/env/heston.py",
+      "parameters": {
+        "S0": 100.0, "K": 100.0, "v0": 0.04, "kappa": 1.0,
+        "theta": 0.04, "xi": 0.2, "rho": -0.7, "r": 0.05,
+        "n_steps": 30, "T": "30/365"
+      }
+    },
+    "feature_engineering": {
+      "script": "src/features/feature_engineering.py",
+      "features": ["S_k/S_0", "log(S_k/K)", "sqrt(v_k)", "tau_k", "Delta_BS_k"]
+    }
+  },
+  "cross_references": {
+    "reports_png_to_results": {
+      "1c6fd619-02.png": "new_approaches/results/audit_summary.json",
+      "1c6fd619-03.png": "new_approaches/results/statistical_analysis.json",
+      "1c6fd619-09.png": "new_approaches/results/extended_real_market_validation.json (SPY)",
+      "1c6fd619-10.png": "new_approaches/results/extended_real_market_validation.json (NIFTY)"
+    },
+    "code_to_paper_sections": {
+      "w_dro_t.py": "Section 4.1 (W-DRO-T)",
+      "three_stage.py": "Section 4.2 (3SCH)",
+      "rse.py": "Section 4.3 (RSE)",
+      "rvsn.py": "Section 4.4 (RVSN, exploratory)",
+      "sac_cvar.py": "Section 4.4 (SAC-CVaR, exploratory)"
+    }
+  }
+}

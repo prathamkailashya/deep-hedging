@@ -1,0 +1,101 @@
+{
+  "manifest": {
+    "title": "Deep Hedging Deliverables",
+    "author": "Pratham Kailasiya, IIT Roorkee",
+    "date": "2026-03-02",
+    "version": "1.0"
+  },
+  "files": {
+    "latex_papers": [
+      {
+        "file": "W-DRO-T_paper.tex",
+        "description": "Individual paper: Wasserstein DRO Transformer for Distributionally Robust Deep Hedging",
+        "type": "conference_paper",
+        "format": "NeurIPS two-column style"
+      },
+      {
+        "file": "3SCH_paper.tex",
+        "description": "Individual paper: Three-Stage Curriculum Hedger for smooth loss landscape transitions",
+        "type": "conference_paper",
+        "format": "NeurIPS two-column style"
+      },
+      {
+        "file": "RSE_paper.tex",
+        "description": "Individual paper: Regime-Switching Ensemble for adaptive deep hedging",
+        "type": "conference_paper",
+        "format": "NeurIPS two-column style"
+      },
+      {
+        "file": "combined_paper.tex",
+        "description": "Comprehensive paper covering all three approaches with full experiments, implications, and reproducibility",
+        "type": "journal_paper",
+        "format": "NeurIPS two-column style"
+      },
+      {
+        "file": "A0_poster.tex",
+        "description": "A0 conference poster using tikzposter with all key results, algorithms, and implications",
+        "type": "poster",
+        "format": "tikzposter A0 portrait"
+      }
+    ],
+    "bibliography": [
+      {
+        "file": "references.bib",
+        "description": "Comprehensive BibTeX bibliography with 40+ entries covering deep hedging, DRO, signatures, RL, risk measures, and regulatory frameworks",
+        "entries": 40
+      }
+    ],
+    "figures": {
+      "directory": "figures/",
+      "description": "37 PNG files from reports_png/ containing experiment results, statistical analyses, and model comparisons",
+      "count": 37
+    },
+    "reproducibility": [
+      {
+        "file": "REPRODUCE.md",
+        "description": "Complete reproducibility guide with exact commands, GPU/CPU requirements, expected runtimes, disk usage, and verification"
+      },
+      {
+        "file": "requirements.txt",
+        "description": "Python package dependencies for experiment reproduction"
+      },
+      {
+        "file": "Makefile",
+        "description": "Build system for compiling all LaTeX deliverables"
+      }
+    ],
+    "knowledge_base": [
+      {
+        "file": "ocr_reports_png.json",
+        "description": "OCR extraction and summaries for all 37 PNGs in reports_png/ (our experiments)",
+        "entries": 37
+      },
+      {
+        "file": "ocr_reference.json",
+        "description": "OCR extraction summaries for reference papers (270 PNGs) - citation only, not our experiments",
+        "entries": 10
+      },
+      {
+        "file": "kb_index.json",
+        "description": "Searchable knowledge base cross-linking formulas, algorithms, hyperparameters, and results to repository files",
+        "sections": ["models", "experiments", "data_generation", "cross_references"]
+      }
+    ],
+    "metadata": [
+      {
+        "file": "manifest.json",
+        "description": "This file - machine-readable inventory of all deliverables"
+      }
+    ]
+  },
+  "compilation_instructions": {
+    "latex": "cd deliverable && make all",
+    "individual": "pdflatex <paper>.tex && bibtex <paper> && pdflatex <paper>.tex && pdflatex <paper>.tex",
+    "requirements": "texlive-full or mactex with tikzposter, algorithm, natbib, booktabs, tcolorbox packages"
+  },
+  "experiment_reproduction": {
+    "command": "cd new_approaches && python experiments/run_full_experiments.py --seeds 42 142 242 342 442 542 642 742 842 942 --n_train 50000 --epochs 80",
+    "expected_runtime": "~24 hours (GPU) / ~72 hours (CPU)",
+    "expected_disk": "~650MB"
+  }
+}

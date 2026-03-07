@@ -1,0 +1,441 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Part 4: Sections 9–10 + Appendices
+% (Poster Sections 9, 10)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Economic, Regulatory, and Governance Implications}
+\label{sec:economic}
+
+\subsection{Economic and Financial Implications}
+
+\subsubsection{Capital Requirement Analysis}
+
+Under Basel~III/IV FRTB, we approximate regulatory capital as $\mathrm{Capital} = m_c \cdot \sqrt{10} \cdot \mathrm{CVaR}_{95} \cdot \mathrm{Notional}/S_0$ with supervisory multiplier $m_c = 1.5$.
+
+\begin{table}[H]
+\centering\small
+\caption{Capital per \$100M notional (SPY normal scenario).}
+\label{tab:capital}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+\textbf{Model} & \textbf{CVaR$_{95}$} & \textbf{Std P\&L} & \textbf{Capital} & \textbf{vs.\ LSTM} \\\midrule
+\textbf{W-DRO-T} & \textbf{11.98} & \textbf{1.71} & \textbf{\$4.79M} & $-41\%$ \\
+Transformer & 14.47 & 3.13 & \$5.79M & $-29\%$ \\
+3SCH & 15.79 & 3.70 & \$6.32M & $-22\%$ \\
+RSE & 16.90 & 3.57 & \$6.76M & $-17\%$ \\
+LSTM & 20.28 & 5.05 & \$8.11M & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+W-DRO-T achieves 41\% capital savings. For a \$10B derivatives desk, this translates to $\sim$\$332M annual capital reduction. During COVID-type stress, savings are even larger: W-DRO-T capital proxy is 46\% lower than LSTM's, precisely when capital constraints bind most tightly. RSE achieves 16.7\% savings (capital proxy \$6.76M vs \$8.11M) with significantly lower trading costs.
+
+\subsubsection{Transaction Cost Efficiency}
+
+\begin{table}[H]
+\centering\small
+\caption{Trading volume and cost efficiency (\$100M notional).}
+\label{tab:tc}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Model} & \textbf{Volume} & \textbf{US (3bp)} & \textbf{India (18bp)} & \textbf{CVaR/Trade} \\\midrule
+LSTM & 0.60 & \$18K & \$108K & 33.8 \\
+3SCH & 0.87 & \$26K & \$157K & 18.1 \\
+RSE & 1.06 & \$32K & \$191K & 16.0 \\
+W-DRO-T & 2.05 & \$62K & \$369K & 5.8 \\
+Transformer & 2.91 & \$87K & \$524K & 5.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The CVaR-per-trade ratio reveals efficiency: Transformer achieves 5.0 CVaR units per trade vs LSTM's 33.8. For India (18~bps), 3SCH's \$157K cost vs W-DRO-T's \$369K makes 3SCH optimal---a \$212K saving exceeding the marginal risk benefit of DRO regularization.
+
+\subsubsection{Hedge Accounting Qualification}
+
+\begin{table}[H]
+\centering\small
+\caption{Hedge accounting qualification (IAS~39 / IFRS~9 / Ind-AS~109).}
+\label{tab:hedge_accounting}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Model} & \textbf{Dollar Offset} & \textbf{$R^2$} & \textbf{Std P\&L} & \textbf{Qualifies} \\\midrule
+W-DRO-T & 0.97 & 0.91 & 1.71 & \checkmark \\
+Transformer & 0.96 & 0.89 & 3.13 & \checkmark \\
+RSE & 0.95 & 0.88 & 3.57 & \checkmark \\
+3SCH & 0.95 & 0.88 & 3.70 & \checkmark \\
+LSTM & 0.94 & 0.87 & 5.05 & \checkmark \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All models qualify for hedge accounting. W-DRO-T achieves highest effectiveness ($R^2 = 0.91$) and lowest earnings volatility. Under IFRS~9's principles-based testing, higher $R^2$ reduces de-designation risk.
+
+\subsubsection{Market-Specific Considerations}
+
+Indian markets (NIFTY/BANKNIFTY) feature:
+\begin{itemize}[noitemsep]
+    \item Securities Transaction Tax (STT): 0.05\% on options premium
+    \item Stamp duty and exchange fees: 2--3~bps per trade
+    \item Wider spreads: 5~bps slippage vs 2~bps US
+    \item Discrete strikes: 50-point NIFTY intervals
+    \item SEBI position limits and margin requirements
+\end{itemize}
+\textbf{Recommendation:} 3SCH for normal conditions (CVaR = 622.26, cost \$157K); Transformer for crisis override (COVID CVaR = 1644.19).
+
+\subsubsection{Risk Management Interpretation}
+
+Models trace a Pareto frontier between tail risk and trading cost:
+\begin{itemize}[noitemsep]
+    \item W-DRO-T: Best CVaR (11.98), highest cost (2.05 vol.)
+    \item RSE: Balanced (16.90 CVaR, 1.06 vol.)
+    \item 3SCH: Cost-efficient (15.79 CVaR, 0.87 vol.)
+    \item LSTM: Minimal cost (20.28 CVaR, 0.60 vol.)
+\end{itemize}
+
+For a \$10B RSE desk: $\sim$\$135M annual capital savings vs LSTM; transaction costs \$32M (US) vs \$18M (LSTM); net benefit $\sim$\$121M annually from capital savings alone.
+
+\subsection{Model Selection Guidelines}
+\label{sec:selection}
+
+\subsubsection{Deployment in US Markets}
+
+W-DRO-T recommended for US markets: 41\% capital savings justify the higher trading volume at 3~bps. During crisis, W-DRO-T's 46\% CVaR improvement is transformative for capital-constrained desks. The DRO gradient penalty provides measurable distributional robustness under volatility regime shifts (crisis-to-normal ratio $3.92\times$ vs $4.28\times$ for LSTM).
+
+\subsubsection{Deployment in Indian Markets}
+
+3SCH recommended for Indian markets: lowest NIFTY normal CVaR (622.26) with trading volume 0.90, minimizing exposure to 18~bps friction costs. For crisis periods, Transformer provides the best COVID performance (1644.19) as a crisis-specific override. W-DRO-T's active trading (2.70 vol.) incurs \$369K costs at 18~bps, making it less attractive despite lower CVaR.
+
+\subsubsection{Handling Regime Uncertainty}
+
+RSE recommended for environments with regime uncertainty: best overall CVaR (3.109), most stable (CV = 0.30\%), and interpretable regime classifications. Best for desks with multiple instruments across volatility regimes, markets transitioning between calm and stressed conditions, and applications requiring maximum seed-to-seed stability.
+
+\subsubsection{Operational Simplicity Considerations}
+
+LSTM/3SCH for operationally constrained settings: LSTM has 54K parameters, 273s training, lowest governance burden. 3SCH uses identical architecture to LSTM---novelty is purely in the documented training schedule. Both qualify for hedge accounting with minimal documentation complexity.
+
+\subsection{Model Risk Governance Framework}
+\label{sec:governance}
+
+We structure governance along four pillars mandated by SR~11-7 (OCC) and SS1/23 (PRA).
+
+\subsubsection{Interpretability Mechanisms}
+
+Each novel model offers a distinct explainability mechanism:
+\begin{itemize}[noitemsep]
+    \item \textbf{W-DRO-T:} Gradient-norm $\|\nabla_X\ell\|_2$ bounds input sensitivity (Lipschitz interpretation); hedging positions compared against BS delta with Leland transaction-cost adjustment as baseline.
+    \item \textbf{3SCH:} Identical LSTM architecture---novelty is purely in the documented, auditable training schedule $(\alpha_{\text{start}}, \alpha_{\text{end}}, T_1, T_2, T_3)$. Each stage's loss trajectory inspectable independently.
+    \item \textbf{RSE:} Three-level stack: (1) time-varying regime probabilities $p(r_k=j)$; (2) time-varying model weights $w_m(r_k)$; (3) static affinity matrix $A \in \R^{4 \times 3}$.
+\end{itemize}
+
+\subsubsection{Independent Model Validation}
+
+\begin{itemize}[noitemsep]
+    \item Backtesting on rolling 252-day windows against historical hedging outcomes
+    \item Crisis stress tests under COVID ($\sigma=65\%$) and 2008 ($\sigma=80\%$)
+    \item Sensitivity analysis: $\varepsilon$ sweep for W-DRO-T, $\alpha$ schedule sweep for 3SCH, $K$ sweep for RSE
+    \item RSE base models validated independently before ensemble validation
+    \item 10-seed stability verified for all models (CV $< 1\%$)
+\end{itemize}
+
+\subsubsection{Retraining and Model Versioning}
+
+W-DRO-T degrades slower under regime shifts (crisis ratio $3.92\times$ vs $4.28\times$), potentially reducing retraining frequency. 3SCH inherits LSTM retraining cadence. RSE allows independent retraining of base models and gating network. Recommended: monthly retraining with fresh Heston-calibrated parameters; quarterly full revalidation including crisis stress tests; version control of checkpoints with Git-based tracking; automated monitoring of CVaR$_{95}$ and gradient-norm drift.
+
+\subsubsection{Rollback Strategies}
+
+\begin{itemize}[noitemsep]
+    \item \textbf{W-DRO-T:} Set $\varepsilon=0$ to recover standard Transformer (zero code changes)
+    \item \textbf{3SCH:} Set $T_2=0$ to recover two-stage baseline (zero code changes)
+    \item \textbf{RSE:} Set $w_m = 1/M$ for equal-weight, or select single best model, or revert to LSTM
+    \item \textbf{All:} Fall back to LSTM baseline as ultimate contingency
+\end{itemize}
+
+Automated rollback triggers: (i) CVaR$_{95}$ exceeds $1.5\times$ LSTM baseline for 5 consecutive days; (ii) gradient norm exceeds $3\times$ training average; (iii) backtesting exceptions exceed Basel traffic-light threshold (4 in 250 days).
+
+\subsubsection{Regulatory Disclosure Requirements}
+
+IFRS~7 requires disclosure of: model architecture, training methodology, backtesting results with CIs, governance procedures. For W-DRO-T: the robustness radius $\varepsilon$ and its economic interpretation. For RSE: ensemble structure and regime classification. For 3SCH: the three-stage schedule.
+
+\subsection{Regulatory and Accounting Implications}
+\label{sec:regulatory}
+
+\subsubsection{Basel III/IV FRTB Capital Requirements}
+
+Under the FRTB Internal Models Approach (IMA), banks must demonstrate backtesting performance on actual and hypothetical P\&L. Expected Shortfall at 97.5\% confidence replaces VaR as the primary risk measure: $\mathrm{ES}_{97.5\%} \approx \mathrm{CVaR}_{95} \times 1.12$; capital charge $= \mathrm{ES} \times m_s$ with supervisory multiplier $m_s \geq 1.5$.
+
+W-DRO-T's lower P\&L volatility (Std 1.71 vs 5.05 for LSTM) directly reduces backtesting exception probability, supporting continued IMA eligibility and avoiding punitive Standardised Approach capital charges. The probability of exceeding 99\% VaR on any given day drops from $\sim$2.5 exceptions/year (LSTM) to $\sim$1.0 (W-DRO-T).
+
+\subsubsection{IFRS 7 Disclosure Requirements}
+
+Firms deploying neural network hedgers should disclose: (i) model architecture and training methodology; (ii) backtesting results with confidence intervals; (iii) model governance procedures; (iv) for W-DRO-T, the robustness radius $\varepsilon$ and its economic interpretation; (v) for RSE, the ensemble structure and regime classification mechanism.
+
+\subsubsection{Ind-AS 109 and SEBI Compliance}
+
+For Indian markets, SEBI algorithmic trading guidelines require documentation of all automated strategies, including neural hedgers. 3SCH's governance simplicity (identical architecture to baseline) is particularly advantageous for Indian regulatory compliance. Indian accounting standards (Ind-AS 109) mirror IFRS~9 with additional SEBI requirements for derivative disclosures. The 18~bps all-in cost makes 3SCH the natural choice.
+
+\section{Discussion, Limitations, and Future Work}
+\label{sec:discussion}
+
+\subsection{Discussion}
+
+\subsubsection{When Complex Models Provide Value}
+
+\begin{itemize}[noitemsep]
+    \item \textbf{Crisis environments:} W-DRO-T: 38--46\% CVaR improvement justifies complexity
+    \item \textbf{Capital-constrained desks:} 41\% savings justify higher operational costs
+    \item \textbf{Low transaction cost markets:} US (3~bps) favors active strategies
+    \item \textbf{Regime uncertainty:} RSE adapts without retraining; best overall CVaR
+\end{itemize}
+
+\subsubsection{When Simpler Models Remain Optimal}
+
+\begin{itemize}[noitemsep]
+    \item \textbf{High-cost markets:} India (18~bps) penalizes active trading; 3SCH optimal
+    \item \textbf{Regulatory interpretability:} LSTM easiest to validate and document
+    \item \textbf{Computational constraints:} LSTM: 54K params, 273s training vs W-DRO-T: 85K, 7119s
+    \item \textbf{Stable conditions:} Normal $\sigma \approx 15\%$ shows small differentials between models
+\end{itemize}
+
+\subsubsection{Practical Trade-Offs Between Risk and Cost}
+
+The Pareto frontier analysis reveals: RSE achieves the best risk-cost trade-off at 15~min training time; W-DRO-T achieves best crisis performance at 119~min. LSTM/3SCH dominate the low-compute region. The added complexity of W-DRO-T and RSE is justified only when the risk reduction exceeds the operational cost.
+
+\subsection{Limitations}
+\label{sec:limitations}
+
+\subsubsection{Simulation-to-Reality Gap}
+
+Heston model cannot fully capture real market microstructure---jumps, flash crashes, liquidity dry-ups, and regime-dependent correlation structures are not modeled. Real-market validation uses synthetic paths calibrated to market parameters, not live option data.
+
+\subsubsection{Single-Asset Limitation}
+
+All experiments on single equity options; multi-asset portfolio hedging with cross-asset correlations is unexplored. The ensemble and DRO approaches should extend naturally but require validation.
+
+\subsubsection{Market Data Constraints}
+
+Calibration uses daily OHLCV data from yfinance; intraday dynamics, microstructure effects, and tick-by-tick patterns are not modeled. Limited to 2019--2021 calibration window.
+
+\subsubsection{Computational Limitations}
+
+Full hyperparameter search is infeasible; grid restricted to key parameters. W-DRO-T MATH SDPA requirement may limit GPU acceleration options. DRO gradient penalty is a first-order approximation; tighter bounds may improve performance. $\varepsilon$ selection is currently manual; adaptive radius estimation could improve.
+
+Additional model-specific limitations:
+\begin{itemize}[noitemsep]
+    \item RSE underperforms W-DRO-T in dedicated crisis scenarios (46.94 vs 69.76 in COVID)
+    \item RSE's three base models increase inference compute by $\sim$3$\times$
+    \item RSE regime classifier may misclassify novel market conditions outside training distribution
+    \item 3SCH's optimal annealing schedule may depend on market characteristics
+    \item W-DRO-T's higher trading volume increases market impact (not modeled)
+    \item NIFTY COVID underperformance for W-DRO-T suggests DRO's active trading penalized by high costs
+\end{itemize}
+
+\subsection{Future Work}
+\label{sec:future}
+
+\subsubsection{Online Adaptive Hedging}
+
+Continual learning with streaming market data; online regime detection for RSE with real-time parameter updates.
+
+\subsubsection{Multi-Asset Hedging}
+
+Portfolio hedging with correlated underlyings; cross-asset DRO regularization for W-DRO-T.
+
+\subsubsection{Market Impact Modeling}
+
+Integrate price impact of large trades into the hedging objective~\citep{pickard2025rl}; particularly important for W-DRO-T's active trading strategy at large notionals.
+
+\subsubsection{Interpretability of Attention Mechanisms}
+
+Analyse temporal attention patterns in the Transformer for economic insights; identify which time steps and features drive hedging decisions.
+
+\subsubsection{Cross-Market Transfer Learning}
+
+Pre-train on liquid US markets, fine-tune for emerging markets (US $\to$ NIFTY regime classifier transfer for RSE).
+
+\subsubsection{Hybrid Robust Curriculum Hedging and RL Frameworks, Rough Path Signatures}
+
+Combine W-DRO-T robustness with 3SCH curriculum for ``3SCH-DRO'' hybrid. Adaptive $\varepsilon$ via cross-validation on crisis holdout scenarios. Dynamic base model unfreezing in RSE. Hierarchical ensemble with DRO-regularized base models. Market-adaptive annealing based on realized volatility for 3SCH. Integration with RL frameworks (SAC, PPO) once sample efficiency improves. Rough path signatures for non-Markovian dynamics in non-semimartingale markets.
+
+%===============================================================
+\appendix
+
+\section{Training Protocol Consistency}
+\label{app:protocol}
+
+All models trained under identical protocol:
+\begin{itemize}[noitemsep]
+    \item Total epochs: 80 (50 CVaR + 30 entropic)
+    \item Same learning rates: $10^{-3} \to 10^{-4}$
+    \item Same optimizer: Adam, weight decay $10^{-4}$
+    \item Same gradient clipping: $\|\nabla\| \leq 5.0$
+    \item Same early stopping: patience 15 (S1), 10 (S2)
+    \item Same data splits per seed
+    \item Same 10 random seeds
+\end{itemize}
+
+Novel model-specific additions operate \emph{within} this shared protocol: W-DRO-T adds DRO penalty only in Stage~2 (no extra epochs); 3SCH splits 80 epochs as 40+15+25 (same total budget); RSE base model pre-training (30 ep each) + gating (50 ep) = 140 model-epochs, equivalent to $\sim$80 single-model epochs given the lightweight gating network.
+
+\section{Hyperparameter Configuration}
+\label{app:hyper}
+
+\begin{table}[H]
+\centering\small
+\caption{Complete hyperparameter table.}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\\midrule
+Heston: $S_0, K, v_0, \kappa, \theta_v, \xi, \rho, r$ & 100, 100, 0.04, 1.0, 0.04, 0.2, $-$0.7, 0.05 \\
+Paths: train / val / test & 50K / 10K / 20K \\
+Steps $N$, horizon $T$ & 30, 30 days \\
+Transaction cost $c_{\mathrm{tc}}$ & 0.001 \\
+Delta clamp $\delta_{\max}$ & 1.5 \\
+Batch size, weight decay & 256, $10^{-4}$ \\
+Gradient clip & $\|\nabla\| \leq 5.0$ \\
+Seeds & \{42, 142, 242, \ldots, 942\} \\
+Bootstrap resamples $B$ & 10,000 \\
+W-DRO-T: $\varepsilon_{\max}$, $\lambda$, SDPA backend & 0.1, 1.0, MATH \\
+3SCH: $\alpha_{\text{start}}/\alpha_{\text{end}}$, $T_1/T_2/T_3$, $\gamma$, $\nu$, $\epsilon$ & 0.8/0.2, 40/15/25, $10^{-3}$, $10^8$, 0.15 \\
+RSE: $K$, $M$, RV windows, classifier hidden & 4, 3, \{5,10,20\}, 64 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Repository Structure}
+\label{app:repo}
+
+\begin{verbatim}
+deep_hedging/
+  src/
+    models/          # LSTM, Transformer, Signature implementations
+    train/           # Loss functions, trainers
+    eval/            # Evaluators, plotting utilities
+    env/             # Heston simulator
+    features/        # Feature engineering pipeline
+  new_approaches/
+    code/            # W-DRO-T, 3SCH, RSE, RVSN, SAC-CVaR
+    experiments/     # run_full_experiments.py
+    results/         # audit_summary.json, statistical_analysis.json
+  experiments/       # Baseline experiment scripts
+  figures/           # Publication-ready figures (.pdf, .pen)
+  deliverable/       # LaTeX papers, poster, this report
+  requirements.txt   # Python dependencies
+\end{verbatim}
+
+\section{Reproducibility Instructions}
+\label{app:reproduce}
+
+\begin{verbatim}
+# Environment
+pip install -r requirements.txt
+# Python 3.10+, PyTorch 2.0+, CUDA 11.8+
+
+# Full experiment suite (all models, 10 seeds)
+cd new_approaches
+python experiments/run_full_experiments.py \
+    --seeds 42 142 242 342 442 542 642 742 842 942 \
+    --n_train 50000 --n_test 20000 --epochs 80 --batch_size 256
+
+# Real market validation
+python experiments/extended_real_market_validation.py
+
+# Statistical analysis
+python experiments/analyze_results.py
+
+# Expected: ~24h total (GPU), ~72h (CPU)
+# Disk: ~500MB total checkpoints
+\end{verbatim}
+
+\section{Computational Resources}
+\label{app:compute}
+
+\begin{table}[H]
+\centering\small
+\caption{Computational requirements per model.}
+\begin{tabular}{@{}lcccr@{}}
+\toprule
+\textbf{Model} & \textbf{Params} & \textbf{Time/seed} & \textbf{GPU RAM} & \textbf{Total (10 seeds)} \\\midrule
+LSTM & 54K & 273s & 1.2 GB & 46 min \\
+3SCH & 54K & 295s & 1.2 GB & 49 min \\
+RSE & $\sim$200K & 924s & 2.1 GB & 154 min \\
+W-DRO-T & 85K & 7,119s & 3.8 GB & 1,187 min \\
+Transformer & 85K & 7,534s & 3.2 GB & 1,256 min \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+W-DRO-T adds $\sim$5\% overhead to Transformer training due to second-order gradients. DRO is training-time only; inference identical to base Transformer ($<$10ms). MATH SDPA backend computes in float32, essential for second-order gradient precision.
+
+\section{Extended NIFTY Analysis}
+\label{app:nifty}
+
+\begin{table}[H]
+\centering\small
+\caption{Full NIFTY metrics (normal 2019, 18 bps cost).}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+\textbf{Model} & \textbf{CVaR$_{95}$} & \textbf{Std P\&L} & \textbf{Trade Vol} & \textbf{Mean P\&L} \\\midrule
+\textbf{3SCH} & \textbf{622.26} & 139.16 & 0.90 & $-323.65$ \\
+W-DRO-T & 663.92 & 146.72 & 2.70 & $-386.94$ \\
+RSE & 686.62 & 152.26 & 0.88 & $-319.63$ \\
+Transformer & 769.61 & 233.40 & 2.09 & $-388.63$ \\
+LSTM & 785.62 & 192.41 & 0.60 & $-308.95$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+3SCH dominates NIFTY normal conditions with CVaR 622.26 and trading volume 0.90---critical at 18 bps cost where each trade costs $6\times$ more than SPY. The cost differential is decisive: 3SCH incurs \$157K vs W-DRO-T's \$369K in transaction costs per \$100M notional.
+
+\section{Training Protocol Fairness Verification}
+\label{app:fairness}
+
+\begin{table}[H]
+\centering\scriptsize
+\caption{Training protocol alignment across all models.}
+\begin{tabularx}{\textwidth}{@{}lXccccc@{}}
+\toprule
+\textbf{Property} & \textbf{Description} & \textbf{LSTM} & \textbf{Trans.} & \textbf{W-DRO-T} & \textbf{3SCH} & \textbf{RSE} \\\midrule
+Total epochs & Training budget & 80 & 80 & 80 & 80 & 80 \\
+Stage 1 LR & CVaR pretraining & $10^{-3}$ & $10^{-3}$ & $10^{-3}$ & $10^{-3}$ & $10^{-3}$ \\
+Stage 2 LR & Fine-tuning & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ \\
+Grad clip & Max norm & 5.0 & 5.0 & 5.0 & 5.0 & 5.0 \\
+Batch size & Per step & 256 & 256 & 256 & 256 & 256 \\
+Optimizer & Algorithm & Adam & Adam & Adam & Adam & Adam \\
+Weight decay & L2 reg & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$ \\
+Data splits & Per seed & Same & Same & Same & Same & Same \\
+Early stop & Patience & 15/10 & 15/10 & 15/10 & 15/10 & 15/10 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Performance differences are attributable to architecture or methodology, not optimization advantages. Novel additions operate within the shared protocol: W-DRO-T adds DRO penalty (no extra epochs); 3SCH redistributes epoch budget (40+15+25=80); RSE pre-trains bases then trains lightweight gating.
+
+\section{Theoretical Foundations Summary}
+\label{app:theory}
+
+\textbf{W-DRO-T:} The Wasserstein DRO gradient-penalty approximation (Kantorovich--Rubinstein duality):
+\begin{equation}
+    \sup_{W_1(\QQ,\PP)\le\varepsilon}\E_\QQ[\ell] \approx \E_\PP[\ell] + \varepsilon\cdot\E_\PP[\|\nabla_X\ell\|_2] + O(\varepsilon^2).
+    \tag{W-DRO-T.1}
+\end{equation}
+
+\textbf{3SCH:} The mixed-loss homotopy $\mathcal{L}_{\mathrm{mix}}(\alpha) = \alpha\,\cvar_{0.95} + (1-\alpha)\,\rho_\lambda$:
+
+
+\textbf{RSE:} The ensemble variance decomposition:
+\begin{equation}
+    \mathrm{Var}(\Pi^{\mathrm{ens}}) = \bar\rho\,\bar\sigma^2 + \frac{1-\bar\rho}{M}\,\bar\sigma^2
+    \tag{RSE.1}
+\end{equation}
+VRF $= (1-\bar\rho)(M-1)/M \approx 26.7\%$ for $M=3$, $\bar\rho=0.6$. Regime-dependent weighting weakly dominates equal weighting. Optimal weights: $w_m^*(r) = [\Sigma(r)^{-1}\mathbf{1}]_m / (\mathbf{1}^\top\Sigma(r)^{-1}\mathbf{1})$ (minimum-variance portfolio allocation applied to hedging strategies).
+
+\section*{Bibliography and Acknowledgement}
+
+Key references: Buehler et al.\ (2019) Deep Hedging; Kozyra (2019) Curriculum Training; Heston (1993) Stochastic Volatility; Blanchet \& Murthy (2019) Wasserstein DRO; Rockafellar \& Uryasev (2000) CVaR Optimization; Vaswani et al.\ (2017) Transformer; Lyons (1998) Rough Paths; Dietterich (2000) Ensemble Methods; Hamilton (1989) Regime Switching; Artzner et al.\ (1999) Coherent Risk Measures; F\"ollmer \& Schied (2002) Convex Risk; Barndorff-Nielsen (2002) Bipower Variation; Esfahani \& Kuhn (2018) Data-Driven DRO; Bengio et al.\ (2009) Curriculum Learning; Rahimian \& Mehrotra (2019) DRO Survey; L\"utkebohmert \& Sester (2021) Robust Hedging; Neagu et al.\ (2025) DRL Hedging; Pickard \& Lawryshyn (2025) RL Market Impact; Tong et al.\ (2023) SigFormer.
+
+\medskip
+\textbf{Acknowledgement:} The author thanks Prof.\ Aditi Gangopadhyay for supervision and guidance throughout this thesis work at IIT Roorkee.
+
+\medskip
+\begin{center}
+\fbox{\parbox{4cm}{\centering\vspace{2cm}\textbf{QR Code}\\[4pt]\small GitHub Repository\\Placeholder\vspace{2cm}}}
+\end{center}

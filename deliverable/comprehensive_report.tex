@@ -1,0 +1,53 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Comprehensive Technical Report — Deep Hedging
+% Author: Pratham Kailasiya (21323030), IIT Roorkee
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{graphicx,booktabs,multirow,tabularx,threeparttable,siunitx}
+\usepackage{algorithm,algorithmic}
+\usepackage{hyperref,xcolor,tcolorbox,enumitem}
+\usepackage[margin=1in]{geometry}
+\usepackage{microtype,nicefrac,float,longtable,colortbl,subcaption}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{assumption}[theorem]{Assumption}
+
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\F}{\mathcal{F}}
+\newcommand{\PP}{\mathbb{P}}
+\newcommand{\QQ}{\mathbb{Q}}
+\newcommand{\cvar}{\mathrm{CVaR}}
+\newcommand{\VaR}{\mathrm{VaR}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\title{\textbf{Computational and Deep Learning Strategies in Quantitative Finance\\for Robust Hedging under Market Frictions}\\[10pt]
+\large MA-500B Thesis Mid Semester Evaluation and Poster Presentation\\[6pt]
+\normalsize Comprehensive Technical Report\\[4pt]
+\small\textit{Poster dimensions: 33\,in (width) $\times$ 46\,in (height) --- A0 size paper}}
+\author{Pratham Kailasiya (21323030) \\ BS-MS Mathematics and Computing \\
+Department of Mathematics, Indian Institute of Technology Roorkee\\[2pt]
+Thesis Supervisor: Prof.\ Aditi Gangopadhyay}
+\date{\today}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+%% Content is split across input files for manageability
+\input{cr_part1}
+\input{cr_part2}
+\input{cr_part3}
+\input{cr_part4}
+
+\end{document}

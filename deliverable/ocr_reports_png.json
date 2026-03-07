@@ -1,0 +1,298 @@
+{
+  "metadata": {
+    "source": "reports_png/",
+    "total_files": 37,
+    "extraction_method": "visual_analysis",
+    "date": "2026-03-02"
+  },
+  "files": {
+    "1c6fd619-01.png": {
+      "filename": "1c6fd619-01.png",
+      "report": "combined_report",
+      "page": 1,
+      "summary": "Title page and executive summary of the combined deep hedging research report. Contains overview of experimental framework: 7 models tested across 10 seeds with 50K training samples under fair two-stage CVaR→Entropic protocol.",
+      "content_type": "title_page",
+      "key_info": ["7 models", "10 seeds", "50K training", "two-stage protocol"]
+    },
+    "1c6fd619-02.png": {
+      "filename": "1c6fd619-02.png",
+      "report": "combined_report",
+      "page": 2,
+      "summary": "Main results table showing CVaR95 performance across all models. RSE achieves best CVaR95=3.109±0.010, LSTM baseline=3.215±0.018. RVSN (0.443) and SAC-CVaR (14.933) flagged as anomalous.",
+      "content_type": "results_table",
+      "key_data": {
+        "RSE_CVaR95": "3.109±0.010",
+        "LSTM_CVaR95": "3.215±0.018",
+        "3SCH_CVaR95": "3.219±0.022",
+        "WDROT_CVaR95": "3.227±0.024",
+        "Transformer_CVaR95": "3.234±0.030"
+      }
+    },
+    "1c6fd619-03.png": {
+      "filename": "1c6fd619-03.png",
+      "report": "combined_report",
+      "page": 3,
+      "summary": "Statistical comparison table with paired t-tests, Holm-Bonferroni correction, and Cohen's d effect sizes. RSE vs LSTM: p<0.0001, d=-7.41 (very large effect).",
+      "content_type": "statistical_analysis",
+      "key_data": {
+        "RSE_vs_LSTM_p": "<0.0001",
+        "RSE_vs_LSTM_d": "-7.41",
+        "RSE_vs_LSTM_pct": "-3.29%"
+      }
+    },
+    "1c6fd619-04.png": {
+      "filename": "1c6fd619-04.png",
+      "report": "combined_report",
+      "page": 4,
+      "summary": "Bootstrap confidence intervals (10,000 resamples) for all models. RSE CI=[3.104,3.115] non-overlapping with all other models.",
+      "content_type": "bootstrap_ci",
+      "key_data": {
+        "RSE_CI": "[3.104, 3.115]",
+        "LSTM_CI": "[3.204, 3.226]",
+        "Transformer_CI": "[3.215, 3.252]"
+      }
+    },
+    "1c6fd619-05.png": {
+      "filename": "1c6fd619-05.png",
+      "report": "combined_report",
+      "page": 5,
+      "summary": "Training time comparison and computational requirements. LSTM: 273s, Transformer: 7534s, W-DRO-T: 7119s, RSE: 924s, 3SCH: 295s per seed.",
+      "content_type": "compute_analysis",
+      "key_data": {
+        "LSTM_time": "273s",
+        "Transformer_time": "7534s",
+        "WDROT_time": "7119s",
+        "RSE_time": "924s",
+        "3SCH_time": "295s"
+      }
+    },
+    "1c6fd619-06.png": {
+      "filename": "1c6fd619-06.png",
+      "report": "combined_report",
+      "page": 6,
+      "summary": "Stability analysis showing coefficient of variation (CV%) across models. RSE: 0.30% (best), LSTM: 0.55%, Transformer: 0.92%. All baseline models CV<1%.",
+      "content_type": "stability_analysis"
+    },
+    "1c6fd619-07.png": {
+      "filename": "1c6fd619-07.png",
+      "report": "combined_report",
+      "page": 7,
+      "summary": "Anomaly analysis for RVSN and SAC-CVaR. RVSN: CV=59.76%, positive mean P&L suggests biased hedges. SAC-CVaR: CVaR=14.93, RL agent not learning effective policy.",
+      "content_type": "anomaly_report"
+    },
+    "1c6fd619-08.png": {
+      "filename": "1c6fd619-08.png",
+      "report": "combined_report",
+      "page": 8,
+      "summary": "Real market validation setup: SPY (3 bps cost) and NIFTY (18 bps cost) with crisis scenario definitions (Normal, COVID, 2008).",
+      "content_type": "market_config"
+    },
+    "1c6fd619-09.png": {
+      "filename": "1c6fd619-09.png",
+      "report": "combined_report",
+      "page": 9,
+      "summary": "SPY crisis testing results. W-DRO-T dominates: Normal CVaR=11.98, COVID=46.94, 2008=62.26. LSTM baseline: 20.28, 86.84, 100.88 respectively.",
+      "content_type": "crisis_results_spy"
+    },
+    "1c6fd619-10.png": {
+      "filename": "1c6fd619-10.png",
+      "report": "combined_report",
+      "page": 10,
+      "summary": "NIFTY crisis testing and conclusions. 3SCH best normal (622.26), Transformer best COVID (1644.19), W-DRO-T best 2008 (2349.72). Market-specific model selection critical.",
+      "content_type": "crisis_results_nifty"
+    },
+    "866cd18f-01.png": {
+      "filename": "866cd18f-01.png",
+      "report": "novel_report",
+      "page": 1,
+      "summary": "Title page of Novel Deep Hedging Approaches report. Covers W-DRO-T, RVSN, SAC-CVaR, 3SCH, and RSE methodologies.",
+      "content_type": "title_page"
+    },
+    "866cd18f-02.png": {
+      "filename": "866cd18f-02.png",
+      "report": "novel_report",
+      "page": 2,
+      "summary": "W-DRO-T mathematical formulation: Wasserstein DRO objective, dual form, gradient penalty approximation. Equation: L_DRO = E[l(θ;X)] + ε·E[‖∇_X l‖₂].",
+      "content_type": "mathematics",
+      "equations": ["L_DRO(θ) = E_P[l(θ;X)] + ε·E_P[‖∇_X l(θ;X)‖₂]"]
+    },
+    "866cd18f-03.png": {
+      "filename": "866cd18f-03.png",
+      "report": "novel_report",
+      "page": 3,
+      "summary": "W-DRO-T training protocol: Phase 1 CVaR pretraining (50 epochs), Phase 2 DRO-annealed entropic (30 epochs, ε: 0→0.1), Phase 3 stress testing (10 epochs, ε=0.2).",
+      "content_type": "training_protocol"
+    },
+    "866cd18f-04.png": {
+      "filename": "866cd18f-04.png",
+      "report": "novel_report",
+      "page": 4,
+      "summary": "W-DRO-T implementation details: SDPA MATH backend requirement for create_graph=True, second-order gradient computation through attention layers.",
+      "content_type": "implementation"
+    },
+    "866cd18f-05.png": {
+      "filename": "866cd18f-05.png",
+      "report": "novel_report",
+      "page": 5,
+      "summary": "RVSN mathematical formulation: Rough Bergomi model, fractional Brownian motion, adaptive signature depth based on local Hurst parameter estimates.",
+      "content_type": "mathematics",
+      "equations": ["V_t = ξ·exp(η·W^H_t - 0.5·η²·t^{2H})", "H_hat = variogram estimator"]
+    },
+    "866cd18f-06.png": {
+      "filename": "866cd18f-06.png",
+      "report": "novel_report",
+      "page": 6,
+      "summary": "RVSN architecture: Hurst estimator network, lead-lag transform, adaptive signature compression, multi-depth gating.",
+      "content_type": "architecture"
+    },
+    "866cd18f-07.png": {
+      "filename": "866cd18f-07.png",
+      "report": "novel_report",
+      "page": 7,
+      "summary": "SAC-CVaR formulation: Constrained MDP, Lagrangian relaxation, distributional critic with 51 quantiles for CVaR estimation.",
+      "content_type": "mathematics",
+      "equations": ["max_π E_π[R] + α·H(π) - λ·(CVaR_0.95(-R) - c)"]
+    },
+    "866cd18f-08.png": {
+      "filename": "866cd18f-08.png",
+      "report": "novel_report",
+      "page": 8,
+      "summary": "SAC-CVaR architecture: Gaussian policy, twin Q-networks, quantile critic, Lagrange multiplier update rule.",
+      "content_type": "architecture"
+    },
+    "866cd18f-09.png": {
+      "filename": "866cd18f-09.png",
+      "report": "novel_report",
+      "page": 9,
+      "summary": "3SCH mathematical formulation: Mixed loss L_mixed(α) = α·CVaR + (1-α)·ρ_λ with annealing schedule α: 0.8→0.2.",
+      "content_type": "mathematics",
+      "equations": ["L_mixed(α) = α·CVaR_0.95 + (1-α)·ρ_λ"]
+    },
+    "866cd18f-10.png": {
+      "filename": "866cd18f-10.png",
+      "report": "novel_report",
+      "page": 10,
+      "summary": "3SCH training protocol: Stage 1 CVaR (50 ep), Stage 2 mixed (20 ep), Stage 3 entropic+penalties (30 ep). No-trade band penalty formulation.",
+      "content_type": "training_protocol"
+    },
+    "866cd18f-11.png": {
+      "filename": "866cd18f-11.png",
+      "report": "novel_report",
+      "page": 11,
+      "summary": "RSE architecture diagram: Regime feature extractor (RV, trend, momentum, jump), regime classifier (MLP), gating network (affinity matrix), base model ensemble.",
+      "content_type": "architecture"
+    },
+    "866cd18f-12.png": {
+      "filename": "866cd18f-12.png",
+      "report": "novel_report",
+      "page": 12,
+      "summary": "RSE regime features: Realized volatility at windows {5,10,20}, SMA crossover trend, momentum, Barndorff-Nielsen jump indicator.",
+      "content_type": "features"
+    },
+    "866cd18f-13.png": {
+      "filename": "866cd18f-13.png",
+      "report": "novel_report",
+      "page": 13,
+      "summary": "RSE training: Pre-train base models (30 ep each, CVaR), freeze, train gating (CVaR 20 ep + entropic 30 ep).",
+      "content_type": "training_protocol"
+    },
+    "866cd18f-14.png": {
+      "filename": "866cd18f-14.png",
+      "report": "novel_report",
+      "page": 14,
+      "summary": "Experimental setup: 80K Heston paths, 50K/10K/20K split, N=30 steps, 30-day horizon, features I_k definition.",
+      "content_type": "experiment_setup"
+    },
+    "866cd18f-15.png": {
+      "filename": "866cd18f-15.png",
+      "report": "novel_report",
+      "page": 15,
+      "summary": "Training protocol alignment table: All models use same 2-stage 80-epoch protocol. Fairness verification checklist.",
+      "content_type": "protocol_verification"
+    },
+    "866cd18f-16.png": {
+      "filename": "866cd18f-16.png",
+      "report": "novel_report",
+      "page": 16,
+      "summary": "Main results table with all 7 models. RSE best CVaR95=3.109. RVSN and SAC-CVaR anomalous.",
+      "content_type": "results_table"
+    },
+    "866cd18f-17.png": {
+      "filename": "866cd18f-17.png",
+      "report": "novel_report",
+      "page": 17,
+      "summary": "Statistical comparison: Paired t-tests vs LSTM with Holm-Bonferroni correction. RSE: -3.29%, p<0.0001, d=-7.41.",
+      "content_type": "statistical_analysis"
+    },
+    "866cd18f-18.png": {
+      "filename": "866cd18f-18.png",
+      "report": "novel_report",
+      "page": 18,
+      "summary": "Real market validation: SPY crisis results table. W-DRO-T best across all US scenarios.",
+      "content_type": "crisis_results"
+    },
+    "866cd18f-19.png": {
+      "filename": "866cd18f-19.png",
+      "report": "novel_report",
+      "page": 19,
+      "summary": "NIFTY crisis results. 3SCH best normal (622.26), Transformer best COVID (1644.19), W-DRO-T best 2008 (2349.72).",
+      "content_type": "crisis_results"
+    },
+    "866cd18f-20.png": {
+      "filename": "866cd18f-20.png",
+      "report": "novel_report",
+      "page": 20,
+      "summary": "Robustness analysis: Crisis-to-normal CVaR ratios. W-DRO-T best COVID robustness (3.92x vs LSTM 4.28x).",
+      "content_type": "robustness_analysis"
+    },
+    "866cd18f-21.png": {
+      "filename": "866cd18f-21.png",
+      "report": "novel_report",
+      "page": 21,
+      "summary": "Capital requirements analysis: W-DRO-T achieves 41% savings ($4.79M vs $8.11M per $100M notional).",
+      "content_type": "capital_analysis"
+    },
+    "866cd18f-22.png": {
+      "filename": "866cd18f-22.png",
+      "report": "novel_report",
+      "page": 22,
+      "summary": "Trading volume and cost efficiency table. CVaR-per-trade ratio analysis across models.",
+      "content_type": "trading_analysis"
+    },
+    "866cd18f-23.png": {
+      "filename": "866cd18f-23.png",
+      "report": "novel_report",
+      "page": 23,
+      "summary": "Hedge accounting qualification: All models pass IAS 39/IFRS 9 tests. Dollar offset 0.94-0.97, R²≥0.87.",
+      "content_type": "accounting_analysis"
+    },
+    "866cd18f-24.png": {
+      "filename": "866cd18f-24.png",
+      "report": "novel_report",
+      "page": 24,
+      "summary": "Indian market considerations: STT, stamp duty, wider spreads, discrete strikes. 3SCH recommended for NIFTY.",
+      "content_type": "market_analysis"
+    },
+    "866cd18f-25.png": {
+      "filename": "866cd18f-25.png",
+      "report": "novel_report",
+      "page": 25,
+      "summary": "Model selection guidelines: W-DRO-T for US, 3SCH for India, RSE for regime uncertainty, LSTM for simplicity.",
+      "content_type": "recommendations"
+    },
+    "866cd18f-26.png": {
+      "filename": "866cd18f-26.png",
+      "report": "novel_report",
+      "page": 26,
+      "summary": "Limitations and future work: Simulation-to-reality gap, RVSN/SAC-CVaR anomalies, single-asset limitation.",
+      "content_type": "limitations"
+    },
+    "866cd18f-27.png": {
+      "filename": "866cd18f-27.png",
+      "report": "novel_report",
+      "page": 27,
+      "summary": "Conclusion and reproducibility: Code repository structure, commands, seeds, hyperparameters summary.",
+      "content_type": "conclusion"
+    }
+  }
+}

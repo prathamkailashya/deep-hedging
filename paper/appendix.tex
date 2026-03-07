@@ -313,3 +313,279 @@ deep_hedging/
 \end{verbatim}
 
 All experiments are reproducible with fixed random seeds.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Novel Approach Algorithms}
+\label{app:novel_algorithms}
+
+\subsection{W-DRO-T: Wasserstein DRO Transformer}
+
+\textbf{Objective Function:}
+\begin{equation}
+    \mathcal{L}_{\text{W-DRO-T}}(\theta) = \rho_\lambda(-\text{P\&L}(\delta^\theta)) + \varepsilon \cdot \mathbb{E}\left[\|\nabla_I \rho_\lambda(\theta; I)\|_2\right]
+\end{equation}
+
+\textbf{Training Protocol:}
+\begin{enumerate}[noitemsep]
+    \item \textbf{Phase 1 (CVaR Pretraining):} 50 epochs, lr = $10^{-3}$, patience = 15
+    \item \textbf{Phase 2 (Entropic + DRO):} 30 epochs, lr = $10^{-4}$, $\varepsilon$ annealed $0 \to 0.1$
+\end{enumerate}
+
+\textbf{Key Hyperparameters:}
+\begin{itemize}[noitemsep]
+    \item Robustness radius: $\varepsilon \in [0, 0.1]$ (annealed)
+    \item Gradient penalty weight: 1.0
+    \item Base architecture: Transformer ($d_{\text{model}}=64$, $n_{\text{heads}}=4$, $n_{\text{layers}}=3$)
+\end{itemize}
+
+\textbf{Complexity:} $O(N^2 \cdot d_{\text{model}})$ per forward pass + gradient computation overhead for DRO penalty.
+
+\subsection{RVSN: Rough Volatility Signature Network}
+
+\textbf{Objective Function:}
+\begin{equation}
+    \delta_k = f_\theta\left(\sum_{m=1}^{M} w_m(H_k, \sigma_k) \cdot \Pi_m\left(S^{(m)}(X_{[k-\tau:k]})\right)\right)
+\end{equation}
+
+\textbf{Training Protocol:}
+\begin{enumerate}[noitemsep]
+    \item \textbf{Stage 1 (CVaR):} 50 epochs on rough Bergomi paths ($H \in [0.05, 0.15]$)
+    \item \textbf{Stage 2 (Entropic):} 30 epochs with Hurst-adaptive gating
+\end{enumerate}
+
+\textbf{Key Hyperparameters:}
+\begin{itemize}[noitemsep]
+    \item Signature depth: $m \in \{2, 3, 4\}$ (adaptive)
+    \item Window size: $\tau = 10$ steps
+    \item Hurst parameter range: $H \in [0.05, 0.5]$
+    \item Compressed signature dimension: 64
+\end{itemize}
+
+\textbf{Complexity:} $O(N \cdot \tau \cdot m!)$ for signature computation.
+
+\subsection{SAC-CVaR: CVaR-Constrained Soft Actor-Critic}
+
+\textbf{Objective Function:}
+\begin{equation}
+    \max_\pi \mathbb{E}_\pi[R] + \alpha \mathcal{H}(\pi) - \lambda \cdot \max\left(0, \text{CVaR}_{0.95}(-R) - c\right)
+\end{equation}
+
+\textbf{Training Protocol:}
+\begin{enumerate}[noitemsep]
+    \item Initialize replay buffer, policy $\pi_\phi$, Q-networks $Q_{\theta_1}, Q_{\theta_2}$, quantile network $Z_\psi$
+    \item For each episode:
+    \begin{enumerate}[noitemsep]
+        \item Collect transitions using $\pi_\phi$
+        \item Update critics via TD learning
+        \item Update quantile network for CVaR estimation
+        \item Update policy via SAC objective with CVaR penalty
+        \item Update Lagrange multiplier: $\lambda \gets \max(0, \lambda + \eta_\lambda(\text{CVaR} - c))$
+    \end{enumerate}
+\end{enumerate}
+
+\textbf{Key Hyperparameters:}
+\begin{itemize}[noitemsep]
+    \item Replay buffer size: 100,000
+    \item Batch size: 256
+    \item Discount factor: $\gamma = 0.99$
+    \item Number of quantiles: 51
+    \item CVaR threshold: $c = 3.5$
+    \item Lagrange learning rate: $\eta_\lambda = 10^{-4}$
+\end{itemize}
+
+\textbf{Complexity:} $O(B \cdot N \cdot d)$ per update, where $B$ is batch size.
+
+\subsection{3SCH: Three-Stage Curriculum Hedger}
+
+\textbf{Objective Function:}
+
+\textit{Stage 1:} $\mathcal{L}_1 = \text{CVaR}_{0.95}(-\text{P\&L})$
+
+\textit{Stage 2:} $\mathcal{L}_2 = \alpha(t) \cdot \text{CVaR}_{0.95} + (1-\alpha(t)) \cdot \rho_\lambda$, with $\alpha: 0.8 \to 0.2$
+
+\textit{Stage 3:} $\mathcal{L}_3 = \rho_\lambda(-\text{P\&L}) + \gamma \sum_k |\Delta\delta_k| + \nu \cdot \text{NoBandPenalty}$
+
+\textbf{Training Protocol:}
+\begin{enumerate}[noitemsep]
+    \item \textbf{Stage 1:} 50 epochs, lr = $10^{-3}$, patience = 15
+    \item \textbf{Stage 2:} 20 epochs, lr = $5 \times 10^{-4}$, $\alpha$ linear anneal
+    \item \textbf{Stage 3:} 30 epochs, lr = $10^{-4}$, patience = 10
+\end{enumerate}
+
+\textbf{Key Hyperparameters:}
+\begin{itemize}[noitemsep]
+    \item Trading penalty: $\gamma = 10^{-3}$
+    \item No-trade band width: $\epsilon = 0.15$
+    \item Band penalty weight: $\nu = 10^8$
+    \item Mixing coefficient range: $\alpha \in [0.2, 0.8]$
+\end{itemize}
+
+\textbf{Complexity:} Same as base LSTM, with additional loss computation overhead.
+
+\subsection{RSE: Regime-Switching Ensemble}
+
+\textbf{Objective Function:}
+\begin{equation}
+    \delta_k^{\text{RSE}} = \sum_{m=1}^{M} \left(\sum_{j=1}^{K} p(r_k = j) \cdot A_{jm}\right) \cdot \delta_k^{(m)}
+\end{equation}
+
+where $A \in \mathbb{R}^{K \times M}$ is the learnable regime-model affinity matrix.
+
+\textbf{Training Protocol:}
+\begin{enumerate}[noitemsep]
+    \item \textbf{Base Model Pretraining:} Train LSTM, Transformer, Signature hedgers (30 epochs each)
+    \item \textbf{Gating Training (CVaR):} Freeze base models, train regime classifier + affinity (20 epochs)
+    \item \textbf{Gating Fine-tuning (Entropic):} Continue gating training (30 epochs)
+\end{enumerate}
+
+\textbf{Key Hyperparameters:}
+\begin{itemize}[noitemsep]
+    \item Number of regimes: $K = 4$
+    \item Number of base models: $M = 3$ (LSTM, Transformer, Signature)
+    \item Regime features: realized vol (windows 5, 10, 20), trend, momentum, jump indicator
+    \item Gating network: MLP with 64 hidden units
+\end{itemize}
+
+\textbf{Complexity:} $O(M \cdot C_{\text{base}})$ where $C_{\text{base}}$ is base model complexity.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Training Protocol Consistency}
+\label{app:training_protocol}
+
+To ensure fair comparison, all models follow a consistent experimental protocol:
+
+\subsection{Two-Stage Fairness Protocol}
+
+\begin{table}[h]
+\centering
+\caption{Standardized training protocol for all models}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Component} & \textbf{Stage 1 (CVaR)} & \textbf{Stage 2 (Entropic)} \\
+\midrule
+Epochs & 50 & 30 \\
+Learning rate & $10^{-3}$ & $10^{-4}$ \\
+Early stopping patience & 15 & 10 \\
+Loss function & CVaR$_{0.95}$ & Entropic ($\lambda=1$) \\
+Batch size & 256 & 256 \\
+Optimizer & Adam & Adam \\
+Weight decay & $10^{-4}$ & $10^{-4}$ \\
+Gradient clipping & 5.0 & 5.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Dataset Specifications}
+
+\begin{table}[h]
+\centering
+\caption{Dataset sizes and splits}
+\begin{tabular}{lc}
+\toprule
+\textbf{Split} & \textbf{Paths} \\
+\midrule
+Training & 50,000 \\
+Validation & 10,000 \\
+Test & 20,000 \\
+\midrule
+Total & 80,000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Random Seed Configuration}
+
+Ten independent seeds ensure statistical validity:
+\begin{itemize}[noitemsep]
+    \item Seeds: 42, 142, 242, 342, 442, 542, 642, 742, 842, 942
+    \item Each seed controls: data generation, weight initialization, batch shuffling
+    \item Results reported as mean $\pm$ standard deviation across seeds
+\end{itemize}
+
+\subsection{Evaluation Metrics}
+
+\begin{table}[h]
+\centering
+\caption{Primary evaluation metrics}
+\begin{tabular}{lll}
+\toprule
+\textbf{Metric} & \textbf{Formula} & \textbf{Interpretation} \\
+\midrule
+CVaR$_{95}$ & $\mathbb{E}[L \mid L \geq \text{VaR}_{95}]$ & Tail risk (primary) \\
+Std P\&L & $\sqrt{\text{Var}(\text{P\&L})}$ & Earnings volatility \\
+Entropic Risk & $\frac{1}{\lambda}\log\mathbb{E}[e^{-\lambda \cdot \text{P\&L}}]$ & Risk-adjusted performance \\
+Trading Vol. & $\sum_k |\delta_{k+1} - \delta_k|$ & Transaction cost proxy \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Repository Structure for Reproducibility}
+\label{app:repository}
+
+\subsection{Directory Organization}
+
+\begin{verbatim}
+deep_hedging/
+├── src/
+│   ├── models/              # Baseline architectures
+│   │   ├── lstm.py
+│   │   ├── transformer.py
+│   │   └── signature.py
+│   ├── train/               # Training utilities
+│   └── eval/                # Evaluation metrics
+├── new_approaches/
+│   ├── code/                # Novel model implementations
+│   │   ├── w_dro_t.py       # Wasserstein DRO Transformer
+│   │   ├── rvsn.py          # Rough Volatility Signature Net
+│   │   ├── sac_cvar.py      # CVaR-Constrained SAC
+│   │   ├── three_stage.py   # Three-Stage Curriculum
+│   │   └── rse.py           # Regime-Switching Ensemble
+│   ├── experiments/         # Experiment scripts
+│   │   ├── run_full_experiments.py
+│   │   └── extended_real_market_validation.py
+│   └── results/             # Experiment outputs
+│       ├── checkpoint_full.pkl
+│       └── extended_real_market_validation.json
+├── final_audit_experiments/
+│   ├── audit/               # Scientific validation
+│   ├── training/            # Fair training framework
+│   └── evaluation/          # Statistical analysis
+└── paper/
+    ├── paper.tex            # Main manuscript
+    ├── appendix.tex         # This appendix
+    └── slides.tex           # Presentation slides
+\end{verbatim}
+
+\subsection{Experiment Execution}
+
+\textbf{Full experiment pipeline:}
+\begin{verbatim}
+# Train all models with 10 seeds
+python new_approaches/experiments/run_full_experiments.py
+
+# Run extended real-market validation
+python new_approaches/experiments/extended_real_market_validation.py
+
+# Generate statistical analysis
+python final_audit_experiments/evaluation/statistical_analysis.py
+\end{verbatim}
+
+\subsection{Result Storage}
+
+\begin{itemize}[noitemsep]
+    \item \texttt{checkpoint\_full.pkl}: Complete training histories, model weights, and test metrics for all seeds
+    \item \texttt{extended\_real\_market\_validation.json}: CVaR, Std P\&L, entropic risk, and trading volume for SPY/NIFTY across scenarios
+    \item Statistical analysis outputs include bootstrap confidence intervals, paired $t$-tests, and effect sizes
+\end{itemize}
+
+\subsection{Reproducibility Checklist}
+
+\begin{enumerate}[noitemsep]
+    \item[\checkmark] Fixed random seeds for all stochastic components
+    \item[\checkmark] Consistent hyperparameters across model comparisons
+    \item[\checkmark] Standardized evaluation protocol with bootstrap CIs
+    \item[\checkmark] Multiple comparison correction (Holm-Bonferroni)
+    \item[\checkmark] Effect size reporting (Cohen's $d$)
+    \item[\checkmark] Complete code and configuration availability
+\end{enumerate}

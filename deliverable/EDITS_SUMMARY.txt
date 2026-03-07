@@ -1,0 +1,121 @@
+================================================================================
+EDITS SUMMARY — A0_poster.tex Redesign
+Date: 2025
+Author: Cascade (AI pair programmer)
+================================================================================
+
+OBJECTIVE:
+  Complete redesign of deliverable/A0_poster.tex to NeurIPS-quality A0 portrait
+  poster with 2-column × 3-row balanced grid layout.
+
+────────────────────────────────────────────────────────────────────────────────
+LAYOUT CHANGES:
+────────────────────────────────────────────────────────────────────────────────
+1. Changed from 3-column layout to 2-column × 3-row grid (6 blocks total).
+2. Each row uses \begin{columns} ... \end{columns} with two \column{0.48}.
+3. Block order follows mandatory sequence:
+   Row 1: [1] Introduction & Motivation  |  [2] Mathematical Formulation
+   Row 2: [3] Method Overview & Novelty   |  [4] Key Results & Statistics
+   Row 3: [5] Real Market Validation      |  [6] Deployment, Risk & Regulatory
+
+────────────────────────────────────────────────────────────────────────────────
+TYPOGRAPHY:
+────────────────────────────────────────────────────────────────────────────────
+- Switched to Helvetica (helvet) sans-serif as default font family.
+- Title: \fontsize{82}{96} bold, deep navy color.
+- Author: \fontsize{36}{44} bold; affiliation \fontsize{28}{34}.
+- Section headers: \Large with numbered prefixes.
+- Body text: default 25pt (tikzposter base size).
+- Captions/notes: \small with SlateSecond color.
+
+────────────────────────────────────────────────────────────────────────────────
+COLOR PALETTE:
+────────────────────────────────────────────────────────────────────────────────
+- Primary:    NavyPri    #1F3B63  (deep navy, headers, key labels)
+- Secondary:  SoftBlue   #2E8BC0  (charts, RSE accent)
+- Accent:     AccWarm    #E8913A  (warm muted, 3SCH accent)
+- Background: PosterBG   #FFFFFF  (pure white)
+- Block BG:   BlockBG    #FFFFFF  (no visible block borders)
+- Light BG:   LightBG    #F7F8F9  (subtle fill for TikZ nodes)
+- Text:       TextBody   #334155  (slate body text)
+- Rules:      RuleGray   #CBD5E1  (subtle dividers)
+- Frame:      set to PosterBG (invisible frame = no heavy boxes)
+
+────────────────────────────────────────────────────────────────────────────────
+CONTENT CHANGES:
+────────────────────────────────────────────────────────────────────────────────
+Block 1 — Introduction & Motivation:
+  - Prose introduction replacing pure bullet list.
+  - Gap → Solution TikZ diagram (3 gaps → 3 models).
+  - Experimental protocol summary inline.
+
+Block 2 — Mathematical Formulation:
+  - Heston SDE with correlation term dW^S · dW^v = ρ dt.
+  - Deep hedging P&L and objective.
+  - Three risk objectives with colored line markers (not colorbox).
+  - Prior work note (Buehler, Sinha, Bengio, Lakshminarayanan).
+
+Block 3 — Method Overview & Novelty:
+  - Pipeline TikZ flow diagram.
+  - Four 2×2 minipage grid: W-DRO-T, 3SCH, RSE, Statistical rigour.
+  - Bullet points with triangleright markers.
+
+Block 4 — Key Results & Statistical Analysis:
+  - CVaR₉₅ bar chart (5 models, consistent palette).
+  - Compact comparison table: mean ± std, 95% CI, p-value, Cohen's d.
+  - Annotation note below.
+
+Block 5 — Real Market Validation & Crisis Testing:
+  - SPY crisis bar chart (Normal, COVID-19, GFC-2008, 4 models).
+  - Two-column minipage: SPY findings (left), NIFTY findings (right).
+
+Block 6 — Deployment, Risk & Regulatory:
+  - Basel III/IV capital horizontal bar chart.
+  - Two-column minipage: deployment guidance + regulatory checklist.
+  - Future work roadmap and code link.
+
+────────────────────────────────────────────────────────────────────────────────
+REMOVED / REPLACED:
+────────────────────────────────────────────────────────────────────────────────
+- Removed standalone NIFTY table block (merged into Block 5 as bullet summary).
+- Removed standalone Deployment Recommendations table (merged into Block 6).
+- Removed standalone Key Contributions block (distributed across blocks).
+- Removed standalone Future Work & Reproducibility block (merged into Block 6).
+- Removed colortbl package (no longer using \cellcolor).
+- Removed colorbox-based equation highlighting (replaced with line markers).
+- Removed old 3-column structure entirely.
+
+────────────────────────────────────────────────────────────────────────────────
+NUMERIC PROVENANCE:
+────────────────────────────────────────────────────────────────────────────────
+All numeric values sourced from:
+  - new_approaches/results/audit_summary.json
+  - new_approaches/results/statistical_analysis.json
+  - new_approaches/results/extended_real_market_validation.json
+
+Key values preserved:
+  RSE CVaR₉₅:    3.109 ± 0.010, CI [3.104, 3.115], p < 0.0001, d = -7.41
+  LSTM CVaR₉₅:   3.215 ± 0.015, CI [3.207, 3.225]
+  3SCH CVaR₉₅:   3.219 ± 0.016, CI [3.210, 3.229]
+  W-DRO-T CVaR₉₅: 3.227 ± 0.011, CI [3.220, 3.234]
+  SPY Normal:     LSTM 20.28, W-DRO-T 11.98, RSE 16.90, 3SCH 15.79
+  SPY COVID:      LSTM 86.84, W-DRO-T 46.94, RSE 69.76, 3SCH 69.25
+  SPY GFC:        LSTM 100.88, W-DRO-T 62.26, RSE 84.57, 3SCH 88.43
+  Capital ($/100M): LSTM 8.11, RSE 6.76, 3SCH 6.32, Trans 5.79, W-DRO-T 4.79
+
+────────────────────────────────────────────────────────────────────────────────
+LATEX VERIFICATION:
+────────────────────────────────────────────────────────────────────────────────
+- 36 \begin{} and 36 \end{} — all balanced.
+- Environment counts verified: columns(3), axis(3), tikzpicture(5),
+  center(6), minipage(8), itemize(8), tabular(1), align*(1), document(1).
+- No orphan environments detected.
+
+────────────────────────────────────────────────────────────────────────────────
+STYLE INSPIRATION:
+────────────────────────────────────────────────────────────────────────────────
+- NeurIPS / ICML poster examples: white background, generous whitespace,
+  subtle color accents, data-driven visuals over text walls.
+- Typography hierarchy enforced: title > section > body > caption.
+- No heavy colored boxes or borders — clean academic aesthetic.
+================================================================================
