@@ -11,42 +11,10 @@
 
 \subsubsection{LSTM Hedger Architecture}
 
-The LSTM hedger of~\citet{kozyra2019deep} processes $[I_k;\,\delta_{k-1}] \in \R^{d_{\mathrm{in}}+1}$ at each step $k$:
-\begin{align}
-    f_k &= \sigma(W_f [I_k;\,\delta_{k-1};\,h_{k-1}] + b_f), \\
-    i_k &= \sigma(W_i [I_k;\,\delta_{k-1};\,h_{k-1}] + b_i), \\
-    \tilde{c}_k &= \tanh(W_c [I_k;\,\delta_{k-1};\,h_{k-1}] + b_c), \\
-    c_k &= f_k \odot c_{k-1} + i_k \odot \tilde{c}_k, \\
-    o_k &= \sigma(W_o [I_k;\,\delta_{k-1};\,h_{k-1}] + b_o), \\
-    h_k &= o_k \odot \tanh(c_k), \\
-    \delta_k &= \delta_{\max} \cdot \tanh(W_{\delta} h_k + b_\delta),
-\end{align}
-where $\sigma$ is sigmoid, $\odot$ is element-wise multiplication, $(h_k, c_k)$ are hidden/cell states, $\delta_{\max}=1.5$. Architecture: 2 LSTM layers, hidden dimension 50, $\sim$54K parameters. Training: $\sim$273s/seed.
 
-The cell state gradient factors as $\frac{\partial c_k}{\partial c_{k-1}} = f_k + \frac{\partial f_k}{\partial c_{k-1}} \odot c_{k-1} + \frac{\partial(i_k \odot \tilde{c}_k)}{\partial c_{k-1}}$. When $f_k \approx 1$, gradients flow unattenuated---critical for $N=30$ steps where vanilla RNNs suffer decay $\sim 0.95^{30} \approx 0.21$.
 
 \subsubsection{Transformer Hedger Architecture}
 
-\textbf{Input embedding.} $X_0[k] = W_{\mathrm{in}} I_k + \mathrm{PE}(k) \in \R^{d_{\mathrm{model}}}$ with sinusoidal positional encoding $\mathrm{PE}(k)_{2i} = \sin(k / 10000^{2i/d_{\mathrm{model}}})$, $\mathrm{PE}(k)_{2i+1} = \cos(k / 10000^{2i/d_{\mathrm{model}}})$.
-
-\textbf{Scaled dot-product attention.} For head $h \in \{1,\ldots,H\}$, $d_h = d_{\mathrm{model}}/H$:
-\begin{align}
-    Q_h = X W_h^Q, \quad K_h = X W_h^K, \quad V_h = X W_h^V, \\
-    \mathrm{Attn}_h(X) = \mathrm{softmax}\!\Bigl(\frac{Q_h K_h^\top}{\sqrt{d_h}} + M_{\mathrm{causal}}\Bigr) V_h,
-\end{align}
-where $[M_{\mathrm{causal}}]_{ij} = 0$ if $i \ge j$, $-\infty$ if $i < j$ (non-anticipativity).
-
-\textbf{Multi-head attention and FFN:}
-\begin{align}
-    \mathrm{MHA}(X) &= \mathrm{Concat}(\mathrm{Attn}_1, \ldots, \mathrm{Attn}_H)\, W^O, \\
-    X' &= \mathrm{LayerNorm}(X + \mathrm{MHA}(X)), \\
-    X_l &= \mathrm{LayerNorm}(X' + \mathrm{FFN}(X')),
-\end{align}
-with $\mathrm{FFN}(x) = W_2\,\mathrm{GELU}(W_1 x + b_1) + b_2$, $W_1 \in \R^{d_{\mathrm{model}} \times d_{\mathrm{ff}}}$, $W_2 \in \R^{d_{\mathrm{ff}} \times d_{\mathrm{model}}}$.
-
-\textbf{Output:} $\delta_k = 1.5 \cdot \tanh(W_o X_L[k] + b_o)$.
-
-Architecture: $d_{\mathrm{model}}=64$, $H=4$, $L=3$, $d_{\mathrm{ff}}=256$, dropout $0.1$, $\sim$85K params, $\sim$7534s/seed.
 
 \subsubsection{Signature-Based Hedger}
 
@@ -495,42 +463,6 @@ The gradient penalty $\|\nabla_X \ell\|_2$ penalizes sensitivity to input pertur
 \end{corollary}
 
 \subsubsection{Architecture}
-
-W-DRO-T wraps the Transformer hedger~\citep{vaswani2017attention} with DRO training.  We detail the mathematical structure of both components.
-
-\paragraph{Transformer Encoder with Causal Masking}
-
-\textbf{Input embedding.}  At each time step $k$, the $d_{\mathrm{in}}$-dimensional feature vector $I_k$ is projected and augmented with sinusoidal positional encoding:
-\begin{equation}
-    X_0[k] = W_{\mathrm{in}} I_k + \mathrm{PE}(k) \in \R^{d_{\mathrm{model}}},
-    \label{eq:input_proj}
-\end{equation}
-where $\mathrm{PE}(k)_{2i} = \sin(k / 10000^{2i/d_{\mathrm{model}}})$ and $\mathrm{PE}(k)_{2i+1} = \cos(k / 10000^{2i/d_{\mathrm{model}}})$.
-
-\textbf{Scaled dot-product attention.}  For head $h \in \{1,\ldots,H\}$ in layer $l$, let $d_h = d_{\mathrm{model}}/H$.  Given input $X \in \R^{N \times d_{\mathrm{model}}}$:
-\begin{align}
-    Q_h &= X W_h^Q, \quad K_h = X W_h^K, \quad V_h = X W_h^V, \label{eq:qkv}\\
-    \mathrm{Attn}_h(X) &= \mathrm{softmax}\!\Bigl(\frac{Q_h K_h^\top}{\sqrt{d_h}} + M_{\mathrm{causal}}\Bigr) V_h, \label{eq:sdpa}
-\end{align}
-where $W_h^Q, W_h^K, W_h^V \in \R^{d_{\mathrm{model}} \times d_h}$ are learned projections and $M_{\mathrm{causal}} \in \{0, -\infty\}^{N \times N}$ is the causal mask:
-\begin{equation}
-    [M_{\mathrm{causal}}]_{ij} = \begin{cases} 0 & \text{if } i \ge j, \\ -\infty & \text{if } i < j. \end{cases}
-\end{equation}
-This prevents the hedging decision at step $k$ from attending to future information, enforcing the non-anticipativity constraint essential for hedging.
-
-\textbf{Multi-head attention and feed-forward.}  The outputs of all heads are concatenated and passed through layer normalisation, a feed-forward network with GELU activation, and a residual connection:
-\begin{align}
-    \mathrm{MHA}(X) &= \mathrm{Concat}(\mathrm{Attn}_1(X), \ldots, \mathrm{Attn}_H(X))\, W^O, \label{eq:mha}\\
-    X' &= \mathrm{LayerNorm}(X + \mathrm{MHA}(X)), \label{eq:ln1}\\
-    X_l &= \mathrm{LayerNorm}(X' + \mathrm{FFN}(X')), \label{eq:ln2}
-\end{align}
-where $\mathrm{FFN}(x) = W_2\,\mathrm{GELU}(W_1 x + b_1) + b_2$ with $W_1 \in \R^{d_{\mathrm{model}} \times d_{\mathrm{ff}}}$ and $W_2 \in \R^{d_{\mathrm{ff}} \times d_{\mathrm{model}}}$.
-
-\textbf{Output head.}  After $L$ encoder layers:
-\begin{equation}
-    \delta_k = \delta_{\max} \cdot \tanh(W_o\, X_L[k] + b_o), \qquad \delta_{\max} = 1.5.
-    \label{eq:output_head}
-\end{equation}
 
 Architecture summary: $d_{\mathrm{model}} = 64$, $H = 4$ heads ($d_h = 16$), $L = 3$ layers, $d_{\mathrm{ff}} = 256$, dropout $= 0.1$.  Total parameters: $\sim$85K.
 

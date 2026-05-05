@@ -1,0 +1,359 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[a4paper,margin=2.4cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{assumption}{Assumption}
+\newtheorem*{remark}{Remark}
+
+\title{JAWS-T: Jump-Augmented Wasserstein DRO Signature Transformer\\
+  \large A multi-asset, jump-aware, distributionally robust hedger with a
+  tail-aware DRO penalty}
+\author{Pratham Kailasiya\\Department of Mathematics, IIT Roorkee}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We propose JAWS-T, a multi-asset deep-hedging architecture that addresses six
+unresolved structural limitations of the strongest existing method
+(W-DRO-T): single-asset focus, absence of jumps, Markovian features, mean-DRO
+penalty, flat transaction costs, and the lack of a managerial loss term. The
+central methodological contribution is a \emph{tail-aware} Wasserstein DRO
+surrogate that bounds the worst-case CVaR shift directly under any
+$\varepsilon$-Wasserstein perturbation of the data-generating measure. We
+formalise the construction, prove the first-order tail-DRO bound by
+specialising the Blanchet--Murthy duality, and describe a path-signature/
+causal-Transformer backbone trained under a three-phase curriculum.
+\end{abstract}
+
+\section{Why a New Method is Needed}
+
+The existing pipeline's strongest method is W-DRO-T --- a Wasserstein-DRO
+Transformer hedger that achieves a CVaR$_{95}$ of $46.94$ on US-COVID stress
+(versus $86.84$ for the LSTM baseline). Six structural gaps remain:
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Single-asset European call only.} Cross-asset correlation,
+    basket payoffs, and portfolio-level risk are not exercised.
+  \item \textbf{Heston dynamics --- no jumps.} Real index returns exhibit
+    discontinuities (e.g.\ 8 March 2020). A Heston-trained hedger systematically
+    under-rebalances around discontinuities.
+  \item \textbf{Markovian backbone.} Existing models consume only short-horizon
+    state. Volatility roughness and clustering are not exploited as features
+    even when observable from the path.
+  \item \textbf{DRO penalty applied to \emph{average} loss.} W-DRO-T penalises
+    $\|\nabla_X \mathbb{E}[\ell]\|_2$, but the regulatory metric is CVaR ---
+    a structural mismatch.
+  \item \textbf{Flat transaction costs.} Real markets have asymmetric slippage
+    and liquidity effects; without a slippage proxy, the trading penalty is
+    decoupled from realised execution risk.
+  \item \textbf{No managerial term.} Capital is computed \emph{post-hoc} from
+    CVaR but never appears inside the optimisation objective.
+\end{enumerate}
+
+JAWS-T addresses all six gaps inside a single model and a single loss.
+
+\section{Mathematical Formulation}
+
+\subsection{Multi-Asset Bates Market Model}
+
+Let $d \in \mathbb{N}$ be the number of underliers on a filtered probability
+space $(\Omega, \mathcal{F}, (\mathcal{F}_t)_{t\in[0,T]}, \mathbb{P})$. The
+vector price process $S_t \in \mathbb{R}^d_{>0}$ follows a multi-asset Bates
+(jump--diffusion + stochastic volatility) model:
+\begin{align}
+\frac{dS_t^i}{S_{t^-}^i} &= (r - \lambda_i\, m^i_J)\,dt + \sqrt{v_t^i}\, dW_t^{S,i}
+  + (e^{J_t^i} - 1)\, dN_t^i,\\
+dv_t^i &= \kappa_i(\theta_i - v_t^i)\,dt + \xi_i\sqrt{v_t^i}\, dW_t^{v,i},
+\end{align}
+where:
+\begin{itemize}
+  \item $W_t^S = (W_t^{S,1},\dots,W_t^{S,d})^\top$ is a $d$-dimensional Brownian
+    motion with cross-asset correlation $\Sigma$ ($\Sigma_{ii}=1$, $\Sigma$
+    symmetric PSD);
+  \item $\mathrm{corr}(dW^{S,i}, dW^{v,i}) = \rho_i$ is the leverage
+    parameter (typically $\rho_i \approx -0.7$);
+  \item $N^i$ are independent Poisson processes with intensity $\lambda_i$,
+    jump sizes $J^i \sim \mathcal{N}(\mu_J^i, (\sigma_J^i)^2)$, with the Bates
+    compensator $m_J^i = \exp(\mu_J^i + (\sigma_J^i)^2/2) - 1$;
+  \item $r$ is the (deterministic) risk-free rate.
+\end{itemize}
+We discretise $[0,T]$ into $N$ uniform steps $0 = t_0 < t_1 < \cdots < t_N = T$.
+
+\subsection{Multi-Asset Hedging Problem}
+
+We hedge a basket European call
+\begin{equation}
+Z = \big(\langle w, S_T \rangle - K\big)_+, \qquad w \in \Delta^{d-1}.
+\end{equation}
+A hedging policy is a sequence $\boldsymbol{\delta} = (\delta_0, \dots,
+\delta_{N-1})$ with $\delta_k \in \mathbb{R}^d$. The discrete-time,
+self-financing PnL with proportional transaction costs $c \in \mathbb{R}^d_{\geq 0}$
+and liquidity-activated slippage $s \in \mathbb{R}^d_{\geq 0}$ is
+\begin{align}
+\mathrm{PnL}(\boldsymbol{\delta}) &= -Z + \sum_{k=0}^{N-1} \langle \delta_k,
+  S_{t_{k+1}} - S_{t_k}\rangle - \mathrm{TC}(\boldsymbol{\delta}, S),\\
+\mathrm{TC}(\boldsymbol{\delta}, S) &= \sum_{k=0}^{N-1}\sum_{i=1}^d \big( c_i + s_i
+  \cdot \mathbf{1}\{|\Delta\delta_k^i|>\bar{u}_i\}\big)\, |\Delta\delta_k^i|\, S_{t_k}^i.
+\end{align}
+The slippage activation $\mathbf{1}\{|\Delta\delta_k^i|>\bar{u}_i\}$ encodes
+liquidity-adverse rebalancing: trades larger than the per-step liquidity cap
+$\bar{u}_i$ pay an additional $s_i$ basis-point penalty.
+
+\subsection{Risk-Sensitive Objective}
+
+For a loss $L = -\mathrm{PnL}$ define the (coherent) Conditional Value-at-Risk
+$\mathrm{CVaR}_\alpha(L) = \mathbb{E}[L \mid L \geq \mathrm{VaR}_\alpha(L)]$ and
+the entropic risk
+$\rho_\lambda(\mathrm{PnL}) = \frac{1}{\lambda}\log \mathbb{E}[\exp(-\lambda\,
+\mathrm{PnL})]$.
+We use a \emph{convex blend} (in the F\"ollmer--Schied class):
+\begin{equation}
+\mathcal{R}_{\beta,\alpha,\lambda}(\mathrm{PnL}) = (1-\beta)\, \rho_\lambda(\mathrm{PnL})
++ \beta\, \mathrm{CVaR}_\alpha(-\mathrm{PnL}).
+\label{eq:blend}
+\end{equation}
+This is a convex risk measure for any $\beta \in [0,1]$, simultaneously
+optimising mean utility (entropic) and tail (CVaR). Setting $\beta$ controls
+capital sensitivity continuously.
+
+\subsection{Tail-Aware Wasserstein DRO}\label{sec:tail-dro}
+
+Standard Wasserstein DRO solves
+\begin{equation}
+\theta^\star = \arg\min_\theta \sup_{\mathbb{Q}: W_p(\mathbb{Q}, \mathbb{P})\leq \varepsilon}
+\mathbb{E}_\mathbb{Q}\big[\mathcal{R}(\mathrm{PnL}(\delta^\theta))\big].
+\end{equation}
+For $p=1$ and a sufficiently regular loss, the strong-duality result of
+Blanchet \& Murthy \cite{BM2019} gives the first-order approximation
+\begin{equation}
+\sup_{W_1(\mathbb{Q},\mathbb{P})\leq \varepsilon}\mathbb{E}_\mathbb{Q}[\ell(X)]
+\;\approx\; \mathbb{E}_\mathbb{P}[\ell(X)] + \varepsilon\, \mathbb{E}_\mathbb{P}\big[\|\nabla_X \ell(X)\|_2\big].
+\label{eq:bm}
+\end{equation}
+W-DRO-T applies \eqref{eq:bm} with $\ell$ being the average risk. JAWS-T
+applies the gradient penalty to the \emph{tail loss}:
+\begin{equation}
+\mathcal{L}_{\mathrm{DRO}}(\theta) =
+\mathcal{R}_{\beta,\alpha,\lambda}(\mathrm{PnL})
++ \varepsilon \cdot \mathbb{E}\Big[\big\| \nabla_X\, \mathrm{CVaR}_\alpha(-\mathrm{PnL}(\delta^\theta;X))\big\|_2\Big].
+\end{equation}
+
+\begin{theorem}[Tail-DRO bound]\label{thm:tail-dro}
+Let $\mathcal{C}(\theta;X) = \mathrm{CVaR}_\alpha(-\mathrm{PnL}(\delta^\theta;X))$
+and assume $\mathcal{C}(\theta;\cdot)$ is $L_X$-Lipschitz in $X$. Then for all
+$\mathbb{Q}$ with $W_1(\mathbb{Q},\mathbb{P})\leq \varepsilon$:
+\begin{equation}
+\big| \mathbb{E}_\mathbb{Q}[\mathcal{C}(\theta;X)] - \mathbb{E}_\mathbb{P}[\mathcal{C}(\theta;X)] \big|
+\leq \varepsilon \cdot \mathbb{E}_\mathbb{P}\big[\|\nabla_X \mathcal{C}(\theta;X)\|_2\big] + o(\varepsilon).
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+Direct application of the Blanchet--Murthy duality \eqref{eq:bm} with $\ell =
+\mathcal{C}$. Lipschitzness of the inner CVaR map ensures the first-order
+expansion is valid; see also Mohajerin Esfahani \& Kuhn~\cite{MEK2018}.\qed
+\end{proof}
+
+Hence minimising the tail-aware DRO surrogate is, to first order, minimising
+worst-case capital under any $\varepsilon$-Wasserstein perturbation.
+
+\subsection{Final Objective}
+
+\begin{equation}
+\boxed{
+\begin{aligned}
+\mathcal{L}_{\mathrm{JAWS}}(\theta)
+\,=\;& \mathcal{R}_{\beta,\alpha,\lambda}(\mathrm{PnL})
++ \varepsilon\, \mathbb{E}\big[\| \nabla_X \mathcal{C}(\theta;X)\|_2\big]\\
+&{} + \gamma \cdot \mathbb{E}\Big[\sum_{k=0}^{N-1}\|\Delta\delta_k\|_1\Big]
++ \nu \cdot \mathbb{E}\Big[\big(\mathrm{DD}_{\max}-\overline{\mathrm{DD}}\big)_+^2\Big].
+\end{aligned}}
+\end{equation}
+The drawdown penalty aligns training with the managerial objective of
+capital efficiency.
+
+\subsection{Architecture}
+
+JAWS-T is a causal Transformer with two parallel encoders:
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Linear feature encoder.} Each step's raw feature vector
+    $X_k = (S_k, v_k, \tau_k, \Delta^{\mathrm{BS}}_k, J_k, \delta_{k-1})$
+    projected to $\mathbb{R}^{d_{\mathrm{model}}/2}$.
+  \item \textbf{Path-signature encoder.} Truncated signature of order $M=2$
+    on a rolling window of length $W$, with time augmentation and lead--lag
+    transform; projected to $\mathbb{R}^{d_{\mathrm{model}}/2}$.
+\end{enumerate}
+The two embeddings are concatenated, summed with sinusoidal positional
+encoding, and pushed through $L$ causal Transformer blocks (multi-head
+self-attention with triangular mask + GELU FFN). The final per-step head
+outputs
+\begin{equation}
+\delta_k = \delta_{\max} \cdot \tanh\big(W_o \, h_k + b_o\big) \in \mathbb{R}^d.
+\end{equation}
+
+\subsection{Three-Phase Training Curriculum}
+
+Standard curricula (CVaR $\to$ entropic) cause gradient discontinuities at
+stage boundaries. JAWS-T adopts a 3SCH-style philosophy with DRO annealing:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Phase A (50 epochs).} Pure CVaR pretraining ($\beta=1$,
+    $\varepsilon=0$, $\nu=0$), Adam $\mathrm{lr}=10^{-3}$.
+  \item \textbf{Phase B (30 epochs).} Linear blend annealing
+    $\beta : 1 \to 0.5$ and DRO ramp $\varepsilon : 0 \to 0.1$,
+    $\mathrm{lr}=5\times 10^{-4}$.
+  \item \textbf{Phase C (30 epochs).} Capital-tightened fine-tuning with full
+    $\nu$, $\gamma$, $\mathrm{lr}=10^{-4}$.
+\end{itemize}
+Each phase is justified theoretically: Phase A locates a tail-feasible
+region; Phase B applies the homotopy along a continuous family of convex
+risk measures; Phase C tightens the managerial budget without leaving the
+Phase B basin.
+
+\section{Implementation Details}
+
+\subsection{Inputs per asset / per step}
+
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Symbol & Meaning \\
+\midrule
+$S_k^i$ & spot price (normalised by $S_0^i$) \\
+$\log(S_k^i / K^i)$ & log moneyness \\
+$v_k^i$ & instantaneous variance (or EWMA proxy on real data) \\
+$\tau_k = T - t_k$ & time-to-maturity \\
+$\Delta^{\mathrm{BS},i}_k$ & analytic Black--Scholes delta \\
+$J_k^i$ & jump indicator (RV/BV ratio threshold) \\
+$\delta_{k-1}^i$ & previous position (for state continuity) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Hyperparameters (Bayesian-tuned via Optuna)}
+
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Group & Parameter & Search space / default \\
+\midrule
+Architecture & $d_{\mathrm{model}}$ & $\{32, 64, 128\}$ / 64 \\
+& $n_{\mathrm{heads}}$ & $\{2, 4, 8\}$ / 4 \\
+& $L$ (depth) & $\{2, 3, 4\}$ / 3 \\
+& sig window $W$ & $\{5, 8, 12\}$ / 8 \\
+& sig level $M$ & $\{1, 2\}$ / 2 \\
+Loss & $\beta$ & $[0, 1]$ / 0.5 \\
+& $\alpha$ & $\{0.90, 0.95, 0.99\}$ / 0.95 \\
+& $\lambda$ & $[0.5, 5.0]$ / 1.0 \\
+& $\varepsilon$ & $[0, 0.3]$ / 0.1 \\
+& $\gamma$ & $[10^{-4}, 10^{-2}]$ / $10^{-3}$ \\
+& $\nu$ & $[0, 10^{-2}]$ / $10^{-3}$ \\
+Optim & learning rate & log-uniform / curriculum \\
+& batch size & $\{128, 256, 512\}$ / 256 \\
+& grad clip & $[1, 10]$ / 5.0 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Reproducibility}
+
+We use 10 random seeds (42, 142, \ldots, 942), bootstrap CIs (10\,000
+resamples), and Holm--Bonferroni correction across all paired comparisons.
+
+\subsection{Why this beats W-DRO-T mathematically}
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Tail-aware penalty $\Rightarrow$ tighter capital bound.}
+    W-DRO-T's penalty bounds $\mathbb{E}[L]$ shifts; JAWS-T's penalty bounds
+    $\mathrm{CVaR}_\alpha(L)$ shifts. Capital is a function of CVaR; the
+    bound is \emph{directly} on the regulatory metric.
+  \item \textbf{Jump-trained data $\Rightarrow$ no exposure surprise.} A model
+    that has seen jumps in training learns positions robust to them.
+  \item \textbf{Signatures + attention $\Rightarrow$ richer state.} Level-2
+    signature with lead--lag analytically encodes realised quadratic
+    variation; attention captures long-range dependencies.
+  \item \textbf{Convex blend $\Rightarrow$ smooth training.} The 3SCH-style
+    annealing through the convex family of risk measures avoids the
+    documented gradient-discontinuity problem at stage boundaries.
+  \item \textbf{Drawdown soft constraint $\Rightarrow$ aligned with capital.}
+    Penalising in-sample drawdown reduces out-of-sample worst-loss directly.
+\end{enumerate}
+
+\section{Experimental Plan}
+
+\paragraph{Synthetic data.}
+\begin{itemize}[leftmargin=*]
+  \item Stage 1 ($d=1$, Heston). Replication baseline.
+  \item Stage 2 ($d=1$, Bates). Tests gap (ii).
+  \item Stage 3 ($d=3$, multi-asset Bates). Tests gap (i).
+  \item Stage 4 (Stress regimes). COVID $\sigma=65\%$ and 2008 $\sigma=80\%$.
+\end{itemize}
+
+\paragraph{Real data.} SPY, QQQ, IWM (US) and NIFTY-equivalent ETFs from
+\texttt{yfinance}, walk-forward 252-day train / 21-day test, 2018--2025.
+
+\paragraph{Statistical analysis.} 10 seeds, bootstrap CI (10\,000), paired
+$t$-tests, Holm--Bonferroni at $\alpha=0.05$, Cohen's $d$ effect sizes.
+
+\paragraph{Ablation grid.} no jumps; signatures off; attention $\to$ GRU;
+tail-DRO $\to$ mean-DRO (recovers W-DRO-T); drawdown off; lead--lag off.
+
+\section{Limitations and Honest Disclosure}
+
+\begin{enumerate}[leftmargin=*]
+  \item Truncation at $M=2$ misses high-order rough-volatility effects; for
+    rBergomi paths $M=3$ may be needed.
+  \item The first-order $W_1$ approximation is only tight for small
+    $\varepsilon$; multi-step PGD-style adversarial training would be more
+    accurate at large stresses.
+  \item Real-market validation lacks ground-truth instantaneous variance;
+    realised vol underestimates tail risk.
+  \item The drawdown surrogate uses average of training-path drawdowns rather
+    than worst case.
+\end{enumerate}
+
+\section{Summary}
+
+JAWS-T = Jump simulation $+$ Multi-asset PnL $+$ Path-signature features
+$+$ Causal Transformer $+$ Tail-aware DRO $+$ Drawdown-aware risk-sensitive
+blend. It is the smallest set of additions that simultaneously fixes the
+six structural gaps in the existing pipeline and remains theoretically
+defensible (tail-DRO bound, convex risk measure, Lipschitz CVaR, classical
+Bates/Heston duality).
+
+\begin{thebibliography}{9}
+\bibitem{Buehler2019} Buehler, H., Gonon, L., Teichmann, J., Wood, B.
+  Deep hedging. \emph{Quantitative Finance} 19(8), 2019.
+\bibitem{BM2019} Blanchet, J., Murthy, K.
+  Quantifying distributional model risk via optimal transport.
+  \emph{Mathematics of Operations Research} 44(2), 2019.
+\bibitem{MEK2018} Mohajerin Esfahani, P., Kuhn, D.
+  Data-driven distributionally robust optimization using the Wasserstein
+  metric. \emph{Mathematical Programming} 171, 2018.
+\bibitem{Bates1996} Bates, D. S. Jumps and stochastic volatility.
+  \emph{Review of Financial Studies} 9(1), 1996.
+\bibitem{Heston1993} Heston, S. L. A closed-form solution for options with
+  stochastic volatility. \emph{Review of Financial Studies} 6(2), 1993.
+\bibitem{Lyons1998} Lyons, T. Differential equations driven by rough
+  signals. \emph{Revista Matematica Iberoamericana} 14(2), 1998.
+\bibitem{Kidger2020} Kidger, P., Lyons, T. Signatory: differentiable
+  computations of the signature and logsignature transforms. ICLR 2020.
+\bibitem{FollmerSchied2002} F\"ollmer, H., Schied, A. Convex measures of
+  risk and trading constraints. \emph{Finance and Stochastics} 6, 2002.
+\bibitem{Vaswani2017} Vaswani, A.\ et al. Attention is all you need. NeurIPS 2017.
+\end{thebibliography}
+
+\end{document}

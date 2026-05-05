@@ -79,7 +79,7 @@ Arrange the poster content in a **multi-column layout** (2–3 columns recommend
 - Model selection guidelines, governance framework, regulatory compliance
 - **Figures to include:** Capital requirement analysis (Fig 29), Pareto frontier (Fig 32), Hedge accounting workflow (Fig 30)
 
-### Section 10: Discussion, Limitations, and Future Work
+### Section 10: Discussion, Limitations, and Future Work and Expected Direction
 - When complex vs simple models provide value
 - Key limitations (simulation gap, single-asset, data constraints)
 - Future directions: online hedging, multi-asset, market impact, rough path signatures

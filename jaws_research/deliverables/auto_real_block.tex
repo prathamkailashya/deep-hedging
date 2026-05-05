@@ -1,0 +1,72 @@
+\begin{table}[H]\centering\scriptsize
+\caption{Walk-forward real-market $\cvar_{95}$ on \texttt{yfinance} OHLCV across crisis windows. Models trained on the calm 2017-2019 calm window and evaluated on each crisis window of Table~\ref{tab:crisis_windows}.  Lower is better.}
+\label{tab:real_results}
+\begin{tabular}{lllccccc}
+\toprule
+Ticker & Window & Task & LSTM & Transformer & WDRO-T & 3SCH & RSE \\
+\midrule
+QQQ & banking 2023 & asian call & 4.28 & 3.51 & \textbf{3.40} & 4.20 & 4.19 \\
+ &  & digital call & 8.52 & 8.37 & 8.40 & \textbf{8.26} & 8.66 \\
+ &  & european call & 4.58 & \textbf{4.13} & 4.43 & 4.60 & 4.44 \\
+ &  & up out call & 4.58 & \textbf{4.13} & 4.43 & 4.60 & 4.44 \\
+ & calm 2019 & asian call & 3.06 & 3.02 & 3.00 & 3.02 & \textbf{2.88} \\
+ &  & digital call & 9.58 & \textbf{9.35} & 9.55 & 9.58 & 9.57 \\
+ &  & european call & 4.80 & \textbf{4.46} & 4.46 & 4.79 & 4.54 \\
+ &  & up out call & 4.80 & \textbf{4.46} & 4.46 & 4.79 & 4.54 \\
+ & covid acute & asian call & 9.10 & 10.00 & 10.05 & 9.21 & \textbf{8.84} \\
+ &  & digital call & 21.57 & 25.51 & 23.91 & 24.36 & \textbf{18.69} \\
+ &  & european call & 14.31 & 14.42 & 14.45 & 14.85 & \textbf{13.05} \\
+ &  & up out call & 14.31 & 14.42 & 14.45 & 14.85 & \textbf{13.05} \\
+ & inflation 2022 & asian call & 6.25 & 6.74 & 6.80 & 6.30 & \textbf{6.14} \\
+ &  & digital call & 14.32 & 17.34 & 16.64 & 16.02 & \textbf{12.67} \\
+ &  & european call & 9.74 & 9.71 & 10.08 & 9.76 & \textbf{9.27} \\
+ &  & up out call & 9.74 & 9.71 & 10.08 & 9.76 & \textbf{9.27} \\
+ & vol q4 2018 & asian call & 4.29 & 4.73 & 4.68 & \textbf{4.27} & 4.41 \\
+ &  & digital call & 12.26 & 15.29 & 14.86 & 13.49 & \textbf{11.11} \\
+ &  & european call & 7.85 & \textbf{6.32} & 6.60 & 8.08 & 7.39 \\
+ &  & up out call & 7.85 & \textbf{6.32} & 6.60 & 8.08 & 7.39 \\
+\midrule
+SPY & banking 2023 & asian call & 2.60 & 2.22 & \textbf{2.20} & 2.51 & 2.54 \\
+ &  & digital call & 9.92 & \textbf{9.60} & 9.65 & 9.90 & 9.76 \\
+ &  & european call & 3.14 & \textbf{2.71} & 2.81 & 3.14 & 3.08 \\
+ &  & up out call & 3.14 & \textbf{2.71} & 2.81 & 3.14 & 3.08 \\
+ & calm 2019 & asian call & 2.37 & \textbf{1.97} & 1.98 & 2.32 & 2.27 \\
+ &  & digital call & 9.73 & \textbf{9.68} & 9.69 & 9.77 & 9.73 \\
+ &  & european call & 3.60 & 3.03 & \textbf{2.97} & 3.57 & 3.44 \\
+ &  & up out call & 3.60 & 3.03 & \textbf{2.97} & 3.57 & 3.44 \\
+ & covid acute & asian call & \textbf{9.80} & 11.11 & 11.16 & 10.00 & 9.86 \\
+ &  & digital call & 27.35 & 31.59 & 30.17 & 31.17 & \textbf{23.78} \\
+ &  & european call & 16.48 & 15.84 & 16.75 & 17.19 & \textbf{15.50} \\
+ &  & up out call & 16.48 & 15.84 & 16.75 & 17.19 & \textbf{15.50} \\
+ & inflation 2022 & asian call & 4.78 & 4.98 & 4.95 & 4.69 & \textbf{4.60} \\
+ &  & digital call & 11.29 & 13.72 & 13.32 & 12.46 & \textbf{10.32} \\
+ &  & european call & 7.36 & 7.09 & 7.23 & 7.34 & \textbf{7.02} \\
+ &  & up out call & 7.36 & 7.09 & 7.23 & 7.34 & \textbf{7.02} \\
+ & vol q4 2018 & asian call & \textbf{3.84} & 4.28 & 4.16 & 3.87 & 4.01 \\
+ &  & digital call & 11.76 & 14.60 & 14.27 & 12.82 & \textbf{10.81} \\
+ &  & european call & 7.14 & \textbf{6.01} & 6.13 & 7.29 & 6.76 \\
+ &  & up out call & 7.14 & \textbf{6.01} & 6.13 & 7.29 & 6.76 \\
+\midrule
+^NSEI & banking 2023 & asian call & 2.52 & \textbf{1.85} & 1.95 & 2.38 & 2.32 \\
+ &  & digital call & 9.43 & 9.93 & 9.94 & \textbf{9.25} & 9.79 \\
+ &  & european call & 3.44 & \textbf{2.15} & 2.19 & 3.62 & 3.34 \\
+ &  & up out call & 3.44 & \textbf{2.15} & 2.19 & 3.62 & 3.34 \\
+ & calm 2019 & asian call & 3.16 & \textbf{2.56} & 2.57 & 2.97 & 2.82 \\
+ &  & digital call & 9.44 & 9.27 & \textbf{9.26} & 9.41 & 9.39 \\
+ &  & european call & 4.48 & \textbf{3.22} & 3.25 & 4.46 & 3.99 \\
+ &  & up out call & 4.48 & \textbf{3.22} & 3.25 & 4.46 & 3.99 \\
+ & covid acute & asian call & 9.17 & 10.78 & 11.08 & 9.83 & \textbf{8.91} \\
+ &  & digital call & 33.18 & 31.72 & 31.01 & 34.05 & \textbf{26.07} \\
+ &  & european call & 11.74 & 13.52 & 13.16 & 12.25 & \textbf{10.81} \\
+ &  & up out call & 11.74 & 13.52 & 13.16 & 12.25 & \textbf{10.81} \\
+ & inflation 2022 & asian call & 3.71 & \textbf{3.40} & 3.45 & 3.57 & 3.58 \\
+ &  & digital call & 9.49 & 9.56 & 9.58 & 9.53 & \textbf{9.47} \\
+ &  & european call & 5.01 & \textbf{4.60} & 4.73 & 5.21 & 4.93 \\
+ &  & up out call & 5.01 & \textbf{4.60} & 4.73 & 5.21 & 4.93 \\
+ & vol q4 2018 & asian call & 3.43 & 3.12 & \textbf{3.10} & 3.37 & 3.27 \\
+ &  & digital call & \textbf{9.06} & 9.10 & 9.15 & 9.08 & 9.20 \\
+ &  & european call & 3.64 & 3.56 & 3.58 & 3.57 & \textbf{3.15} \\
+ &  & up out call & 3.64 & 3.56 & 3.58 & 3.57 & \textbf{3.15} \\
+\bottomrule
+\end{tabular}
+\end{table}

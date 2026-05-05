@@ -1,0 +1,56 @@
+# --- macOS / editor cruft ---
+.DS_Store
+**/.DS_Store
+*.swp
+*~
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# --- LaTeX build artefacts ---
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.nav
+*.snm
+*.vrb
+
+# --- Heavy experiment outputs (re-generate via scripts) ---
+*.pkl
+*.npz
+*.parquet
+**/outputs/
+**/runs/
+**/logs/
+**/outputs/cache/
+**/outputs/logs/
+**/checkpoints/
+data/raw/
+data/processed/
+
+# --- Third-party reference material (not for redistribution) ---
+reference/
+reports_png/
+poster_figures/
+
+# --- Old / scratch directories ---
+paper/
+combined_report.original.tex
+
+# --- Local experiment snapshots that bloat the repo ---
+experiments/deep_hedging_full_*/
+experiments/*/figures/
+experiments/*/checkpoints/
+final_audit_experiments/results/
+new_experiments/results/

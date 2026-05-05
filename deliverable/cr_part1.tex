@@ -17,20 +17,24 @@ We address these challenges with three novel approaches:
     \item \textbf{3SCH:} Mixed-loss homotopy for smooth training transitions
     \item \textbf{RSE:} Regime-dependent gating over diverse base hedgers
 \end{enumerate}
-Additionally, we evaluate two exploratory approaches---RVSN (adaptive signatures for rough volatility) and SAC-CVaR (RL with CVaR constraints)---which produced anomalous results requiring further investigation.
 
 \subsection{Market Frictions in Real-World Financial Markets}
 
-Real-world derivative hedging faces multiple frictions absent from classical theory:
 \begin{itemize}[noitemsep]
-    \item \textbf{Transaction costs:} SPY $\approx 3$~bps all-in; NIFTY $\approx 18$~bps (including Securities Transaction Tax at 0.05\%, stamp duty 2--3~bps, wider spreads at 5~bps slippage)
-    \item \textbf{Discrete rebalancing:} Daily hedging at $N=30$ time steps for 30-day options
-    \item \textbf{Model uncertainty:} Heston stochastic volatility parameters shift across market regimes; calibration error persists
-    \item \textbf{Incomplete markets:} Stochastic volatility renders perfect replication impossible
-    \item \textbf{Position limits:} Regulatory and risk constraints bound maximum hedge ratios
+    \item \textbf{Transaction costs:} Real hedging incurs trading costs (SPY $\approx 3$ bps vs NIFTY $\approx 18$ bps including STT, stamp duty, and slippage).
+    
+    \item \textbf{Discrete rebalancing:} Hedging occurs at discrete intervals (e.g., daily rebalancing with $\sim 30$ steps for a 30-day option).
+    
+    \item \textbf{Model uncertainty:} Stochastic volatility models (e.g., Heston) face parameter instability and calibration errors across market regimes.
+    
+    \item \textbf{Incomplete markets:} Stochastic volatility prevents perfect replication of derivatives.
+    
+    \item \textbf{Position limits:} Regulatory and risk constraints restrict allowable hedge ratios and exposures.
+    
+    \item \textbf{India-specific frictions:} NIFTY/BANKNIFTY options involve STT (0.05\%), wider spreads, discrete strikes (50-point intervals), and SEBI position limits.
+    
+    \item \textbf{Strategic implication:} High trading frictions favor low-turnover hedging strategies over frequent rebalancing.
 \end{itemize}
-
-Indian equity options (NIFTY, BANKNIFTY) feature particularly challenging conditions: STT of 0.05\% on options premium, wider bid-ask spreads, discrete strikes at 50-point NIFTY intervals, and SEBI position limits. This cost differential fundamentally changes the optimal hedging strategy, favouring low-turnover models.
 
 \subsection{Neural Network Representation of Hedging Policies}
 
@@ -67,9 +71,7 @@ Black--Scholes delta hedging prescribes $\delta_t^{\mathrm{BS}} = \Phi(d_1)$ whe
 
 \citet{buehler2019deep} introduced neural-network-parameterised hedging under convex risk measures, demonstrating that learned policies outperform Black--Scholes delta hedging in the presence of transaction costs. \citet{kozyra2019deep} proposed two-stage curriculum training (CVaR pretraining followed by entropic fine-tuning) and introduced delta bounding via $\tanh$ for training stability. \citet{horvath2021deep} extended the framework to rough volatility models. \citet{carbonneau2021deep} applied deep hedging to long-term insurance derivatives.
 
-\subsection{Delta Bounding and Training Stability}
 
-Delta bounding via $\delta_k = \delta_{\max}\tanh(\cdot)$ prevents unbounded positions and stabilises gradient flow during backpropagation through time (BPTT). For the 30-step hedging horizon ($N=30$), vanilla RNNs suffer gradient decay of order $\sim 0.95^{30} \approx 0.21$. The LSTM's gated cell state mitigates this: when the forget gate $f_k \approx 1$, $\partial c_k/\partial c_{k-1} \approx I$, allowing gradients to flow unattenuated. Gradient clipping at $\|\nabla\| \le 5.0$ provides additional stability.
 
 \subsection{Attention Mechanisms and Transformer Architectures}
 
@@ -91,7 +93,7 @@ LSTMs and Transformers are universal approximators for sequential mappings. Path
 
 \subsection{Overview of Studied Architectures}
 
-Seven architectures evaluated: LSTM, Transformer, W-DRO-T, 3SCH, RSE, RVSN, SAC-CVaR. All share identical data pipeline, feature engineering, and two-stage baseline protocol. The experimental framework: 10 independent seeds (42--942), bootstrap CIs (10,000 resamples), Holm--Bonferroni corrected paired tests, real-market validation on SPY and NIFTY across four crisis scenarios.
+Seven architectures evaluated: LSTM, Transformer, W-DRO-T, 3SCH, RSE. All share identical data pipeline, feature engineering, and two-stage baseline protocol. The experimental framework: 10 independent seeds (42--942), bootstrap CIs (10,000 resamples), Holm--Bonferroni corrected paired tests, real-market validation on SPY and NIFTY across four crisis scenarios.
 
 \subsection{Novel Approaches Introduced}
 
@@ -102,10 +104,9 @@ Seven architectures evaluated: LSTM, Transformer, W-DRO-T, 3SCH, RSE, RVSN, SAC-
 \toprule
 \textbf{Model} & \textbf{Gap} & \textbf{Innovation} & \textbf{Theory} & \textbf{Ref.} \\\midrule
 W-DRO-T & Distributional shift & Grad-norm penalty & Wasserstein DRO duality & \citep{blanchet2019quantifying} \\
-3SCH & Training instability & Mixed-loss homotopy & Berge's maximum thm. & \citep{kozyra2019deep} \\
+3SCH & Training instability & Mixed-loss homotopy & Multiobjective Optimisation & \citep{kozyra2019deep} \\
 RSE & Regime dependence & Gated ensemble & Ensemble variance reduction & Gap analysis \\
-RVSN & Rough volatility & Adaptive signatures & \citep{abijaber2023hedging} & Exploratory \\
-SAC-CVaR & RL hedging & Constrained SAC & \citep{huang2025sac} & Exploratory \\
+
 \bottomrule
 \end{tabular}
 \end{table}
@@ -227,6 +228,3 @@ For probability measures $\mu, \nu$ on $(\R^d, \|\cdot\|_2)$:
 Kantorovich--Rubinstein duality: $W_1(\mu,\nu) = \sup_{\|f\|_{\mathrm{Lip}} \le 1}\{\int f\,d\mu - \int f\,d\nu\}$.
 \end{definition}
 
-\begin{proposition}[Concentration Comparison]
-For $n$ i.i.d.\ samples: $\E[W_1(\hat\PP_n, \PP)] = O(n^{-1/d})$, while $\E[\mathrm{KL}(\hat\PP_n \| \PP)] = +\infty$ for empirical vs.\ continuous measures. Wasserstein has a well-defined finite-sample convergence rate, making it the natural choice for data-driven DRO~\citep{esfahani2018data}.
-\end{proposition}

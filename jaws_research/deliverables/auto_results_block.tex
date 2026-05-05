@@ -1,0 +1,151 @@
+\begin{table}[h]\centering\scriptsize
+\caption{Medium benchmark CVaR$_{95}$ (mean $\pm$ std across $n=3$ seeds, lower is better).  \textbf{Bold} = best in row.}
+\label{tab:medium_results}
+\begin{tabular}{llccccc}
+\toprule
+Regime & Task & LSTM & Transformer & WDRO-T & 3SCH & RSE \\
+\midrule
+normal us & european call & 3.053\,$\pm$\,0.092 & \textbf{2.746\,$\pm$\,0.032} & 2.757\,$\pm$\,0.036 & 3.153\,$\pm$\,0.128 & 3.003\,$\pm$\,0.087 \\
+normal us & european put & 3.166\,$\pm$\,0.150 & \textbf{2.745\,$\pm$\,0.014} & 2.774\,$\pm$\,0.026 & 3.297\,$\pm$\,0.015 & 3.199\,$\pm$\,0.016 \\
+normal us & up out call & 3.070\,$\pm$\,0.122 & \textbf{2.735\,$\pm$\,0.018} & 2.748\,$\pm$\,0.039 & 3.144\,$\pm$\,0.113 & 3.004\,$\pm$\,0.088 \\
+normal us & down in put & \textbf{0.104\,$\pm$\,0.029} & 0.133\,$\pm$\,0.050 & 0.123\,$\pm$\,0.026 & 0.106\,$\pm$\,0.036 & 0.113\,$\pm$\,0.023 \\
+normal us & digital call & 9.754\,$\pm$\,0.091 & \textbf{8.956\,$\pm$\,0.140} & 9.003\,$\pm$\,0.165 & 9.764\,$\pm$\,0.084 & 9.361\,$\pm$\,0.070 \\
+normal us & asian call & 2.292\,$\pm$\,0.048 & \textbf{1.839\,$\pm$\,0.046} & 1.864\,$\pm$\,0.030 & 2.332\,$\pm$\,0.110 & 2.081\,$\pm$\,0.036 \\
+normal us & basket call & 3.770\,$\pm$\,0.095 & 3.807\,$\pm$\,0.060 & 3.797\,$\pm$\,0.077 & 3.838\,$\pm$\,0.093 & \textbf{3.731\,$\pm$\,0.088} \\
+\midrule
+post covid us & european call & 3.980\,$\pm$\,0.149 & \textbf{3.545\,$\pm$\,0.030} & 3.560\,$\pm$\,0.046 & 4.091\,$\pm$\,0.128 & 3.910\,$\pm$\,0.118 \\
+post covid us & european put & 4.080\,$\pm$\,0.158 & \textbf{3.559\,$\pm$\,0.013} & 3.606\,$\pm$\,0.035 & 4.260\,$\pm$\,0.088 & 4.080\,$\pm$\,0.044 \\
+post covid us & up out call & 3.980\,$\pm$\,0.149 & \textbf{3.545\,$\pm$\,0.030} & 3.560\,$\pm$\,0.046 & 4.091\,$\pm$\,0.128 & 3.910\,$\pm$\,0.118 \\
+post covid us & down in put & 0.432\,$\pm$\,0.007 & 0.460\,$\pm$\,0.045 & 0.461\,$\pm$\,0.047 & \textbf{0.430\,$\pm$\,0.004} & 0.436\,$\pm$\,0.003 \\
+post covid us & digital call & 9.745\,$\pm$\,0.098 & \textbf{8.719\,$\pm$\,0.089} & 8.730\,$\pm$\,0.130 & 9.745\,$\pm$\,0.082 & 9.186\,$\pm$\,0.041 \\
+post covid us & asian call & 2.942\,$\pm$\,0.103 & \textbf{2.344\,$\pm$\,0.057} & 2.385\,$\pm$\,0.048 & 3.001\,$\pm$\,0.136 & 2.641\,$\pm$\,0.060 \\
+\midrule
+covid us & european call & 11.340\,$\pm$\,0.355 & \textbf{10.139\,$\pm$\,0.070} & 10.191\,$\pm$\,0.114 & 11.684\,$\pm$\,0.401 & 11.623\,$\pm$\,0.337 \\
+covid us & european put & 11.500\,$\pm$\,0.329 & 10.261\,$\pm$\,0.043 & \textbf{10.189\,$\pm$\,0.052} & 11.894\,$\pm$\,0.327 & 11.358\,$\pm$\,0.203 \\
+covid us & up out call & 10.903\,$\pm$\,0.165 & 9.596\,$\pm$\,0.063 & \textbf{9.590\,$\pm$\,0.206} & 11.196\,$\pm$\,0.118 & 10.418\,$\pm$\,0.090 \\
+covid us & down in put & 11.386\,$\pm$\,0.257 & \textbf{9.613\,$\pm$\,0.096} & 9.630\,$\pm$\,0.141 & 11.858\,$\pm$\,0.092 & 10.895\,$\pm$\,0.163 \\
+covid us & digital call & 9.457\,$\pm$\,0.096 & 7.874\,$\pm$\,0.053 & \textbf{7.845\,$\pm$\,0.032} & 9.447\,$\pm$\,0.050 & 8.544\,$\pm$\,0.036 \\
+covid us & asian call & 8.197\,$\pm$\,0.289 & \textbf{6.686\,$\pm$\,0.155} & 6.691\,$\pm$\,0.237 & 8.580\,$\pm$\,0.360 & 7.487\,$\pm$\,0.182 \\
+covid us & basket call & 12.080\,$\pm$\,0.152 & \textbf{11.589\,$\pm$\,0.073} & 11.660\,$\pm$\,0.164 & 12.425\,$\pm$\,0.209 & 11.643\,$\pm$\,0.090 \\
+\midrule
+gfc 2008 & european call & 13.599\,$\pm$\,0.226 & \textbf{12.331\,$\pm$\,0.080} & 12.353\,$\pm$\,0.130 & 14.123\,$\pm$\,0.293 & 14.235\,$\pm$\,0.346 \\
+gfc 2008 & european put & 13.725\,$\pm$\,0.257 & \textbf{12.382\,$\pm$\,0.049} & 12.384\,$\pm$\,0.145 & 14.351\,$\pm$\,0.093 & 13.703\,$\pm$\,0.138 \\
+gfc 2008 & up out call & 12.548\,$\pm$\,0.083 & \textbf{10.255\,$\pm$\,0.392} & 10.256\,$\pm$\,0.325 & 12.719\,$\pm$\,0.132 & 11.227\,$\pm$\,0.289 \\
+gfc 2008 & down in put & 13.597\,$\pm$\,0.337 & 11.970\,$\pm$\,0.132 & \textbf{11.946\,$\pm$\,0.099} & 14.284\,$\pm$\,0.100 & 13.440\,$\pm$\,0.094 \\
+gfc 2008 & digital call & 9.396\,$\pm$\,0.087 & 7.826\,$\pm$\,0.123 & \textbf{7.774\,$\pm$\,0.052} & 9.380\,$\pm$\,0.048 & 8.494\,$\pm$\,0.078 \\
+gfc 2008 & asian call & 9.875\,$\pm$\,0.238 & 8.154\,$\pm$\,0.226 & \textbf{8.095\,$\pm$\,0.193} & 10.269\,$\pm$\,0.427 & 9.010\,$\pm$\,0.242 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]\centering\scriptsize
+\caption{Paired comparison vs.\ LSTM (Holm--Bonferroni-style raw $p$-values; full corrected table in the appendix).}
+\label{tab:paired_medium}
+\begin{tabular}{lllrrr}
+\toprule
+Regime & Task & Model & $\Delta\%$ & $p$ & Cohen's $d$ \\\midrule
+covid us & asian call & Transformer & -18.4 & 0.009 & -6.02 \\
+covid us & asian call & WDRO-T & -18.4 & 0.001 & -19.11 \\
+covid us & asian call & 3SCH & +4.7 & 0.061 & +2.23 \\
+covid us & asian call & RSE & -8.7 & 0.011 & -5.39 \\
+covid us & basket call & Transformer & -4.1 & 0.024 & -3.68 \\
+covid us & basket call & WDRO-T & -3.5 & 0.004 & -9.45 \\
+covid us & basket call & 3SCH & +2.9 & 0.204 & +1.07 \\
+covid us & basket call & RSE & -3.6 & 0.017 & -4.44 \\
+covid us & digital call & Transformer & -16.7 & 0.002 & -13.91 \\
+covid us & digital call & WDRO-T & -17.0 & 0.002 & -14.60 \\
+covid us & digital call & 3SCH & -0.1 & 0.765 & -0.20 \\
+covid us & digital call & RSE & -9.7 & 0.002 & -12.69 \\
+covid us & down in put & Transformer & -15.6 & 0.003 & -10.73 \\
+covid us & down in put & WDRO-T & -15.4 & 0.002 & -14.70 \\
+covid us & down in put & 3SCH & +4.1 & 0.088 & +1.82 \\
+covid us & down in put & RSE & -4.3 & 0.176 & -1.19 \\
+covid us & european call & Transformer & -10.6 & 0.019 & -4.18 \\
+covid us & european call & WDRO-T & -10.1 & 0.017 & -4.40 \\
+covid us & european call & 3SCH & +3.0 & 0.090 & +1.79 \\
+covid us & european call & RSE & +2.5 & 0.111 & +1.59 \\
+covid us & european put & Transformer & -10.8 & 0.025 & -3.58 \\
+covid us & european put & WDRO-T & -11.4 & 0.018 & -4.23 \\
+covid us & european put & 3SCH & +3.4 & 0.399 & +0.61 \\
+covid us & european put & RSE & -1.2 & 0.446 & -0.54 \\
+covid us & up out call & Transformer & -12.0 & 0.009 & -5.89 \\
+covid us & up out call & WDRO-T & -12.0 & 0.011 & -5.44 \\
+covid us & up out call & 3SCH & +2.7 & 0.125 & +1.48 \\
+covid us & up out call & RSE & -4.5 & 0.038 & -2.87 \\
+gfc 2008 & asian call & Transformer & -17.4 & 0.012 & -5.15 \\
+gfc 2008 & asian call & WDRO-T & -18.0 & 0.000 & -34.16 \\
+gfc 2008 & asian call & 3SCH & +4.0 & 0.094 & +1.75 \\
+gfc 2008 & asian call & RSE & -8.8 & 0.001 & -17.47 \\
+gfc 2008 & digital call & Transformer & -16.7 & 0.003 & -10.08 \\
+gfc 2008 & digital call & WDRO-T & -17.3 & 0.002 & -12.69 \\
+gfc 2008 & digital call & 3SCH & -0.2 & 0.609 & -0.35 \\
+gfc 2008 & digital call & RSE & -9.6 & 0.004 & -8.71 \\
+gfc 2008 & down in put & Transformer & -12.0 & 0.006 & -7.58 \\
+gfc 2008 & down in put & WDRO-T & -12.1 & 0.008 & -6.53 \\
+gfc 2008 & down in put & 3SCH & +5.0 & 0.097 & +1.72 \\
+gfc 2008 & down in put & RSE & -1.2 & 0.557 & -0.40 \\
+gfc 2008 & european call & Transformer & -9.3 & 0.009 & -5.98 \\
+gfc 2008 & european call & WDRO-T & -9.2 & 0.004 & -9.37 \\
+gfc 2008 & european call & 3SCH & +3.9 & 0.005 & +7.76 \\
+gfc 2008 & european call & RSE & +4.7 & 0.015 & +4.73 \\
+gfc 2008 & european put & Transformer & -9.8 & 0.010 & -5.85 \\
+gfc 2008 & european put & WDRO-T & -9.8 & 0.004 & -9.19 \\
+gfc 2008 & european put & 3SCH & +4.6 & 0.058 & +2.30 \\
+gfc 2008 & european put & RSE & -0.2 & 0.929 & -0.06 \\
+gfc 2008 & up out call & Transformer & -18.3 & 0.014 & -4.91 \\
+gfc 2008 & up out call & WDRO-T & -18.3 & 0.009 & -5.98 \\
+gfc 2008 & up out call & 3SCH & +1.4 & 0.190 & +1.13 \\
+gfc 2008 & up out call & RSE & -10.5 & 0.022 & -3.79 \\
+normal us & asian call & Transformer & -19.8 & 0.007 & -6.89 \\
+normal us & asian call & WDRO-T & -18.7 & 0.004 & -8.64 \\
+normal us & asian call & 3SCH & +1.8 & 0.411 & +0.59 \\
+normal us & asian call & RSE & -9.2 & 0.001 & -16.50 \\
+normal us & basket call & Transformer & +1.0 & 0.254 & +0.92 \\
+normal us & basket call & WDRO-T & +0.7 & 0.118 & +1.53 \\
+normal us & basket call & 3SCH & +1.8 & 0.020 & +4.05 \\
+normal us & basket call & RSE & -1.0 & 0.027 & -3.47 \\
+normal us & digital call & Transformer & -8.2 & 0.002 & -12.68 \\
+normal us & digital call & WDRO-T & -7.7 & 0.004 & -8.96 \\
+normal us & digital call & 3SCH & +0.1 & 0.479 & +0.50 \\
+normal us & digital call & RSE & -4.0 & 0.003 & -11.01 \\
+normal us & down in put & Transformer & +28.0 & 0.521 & +0.45 \\
+normal us & down in put & WDRO-T & +18.1 & 0.326 & +0.74 \\
+normal us & down in put & 3SCH & +1.8 & 0.773 & +0.19 \\
+normal us & down in put & RSE & +8.8 & 0.586 & +0.37 \\
+normal us & european call & Transformer & -10.1 & 0.014 & -4.90 \\
+normal us & european call & WDRO-T & -9.7 & 0.030 & -3.27 \\
+normal us & european call & 3SCH & +3.3 & 0.049 & +2.51 \\
+normal us & european call & RSE & -1.6 & 0.012 & -5.13 \\
+normal us & european put & Transformer & -13.3 & 0.047 & -2.57 \\
+normal us & european put & WDRO-T & -12.4 & 0.048 & -2.54 \\
+normal us & european put & 3SCH & +4.1 & 0.262 & +0.89 \\
+normal us & european put & RSE & +1.0 & 0.764 & +0.20 \\
+normal us & up out call & Transformer & -10.9 & 0.035 & -3.00 \\
+normal us & up out call & WDRO-T & -10.5 & 0.054 & -2.38 \\
+normal us & up out call & 3SCH & +2.4 & 0.014 & +4.79 \\
+normal us & up out call & RSE & -2.2 & 0.080 & -1.92 \\
+post covid us & asian call & Transformer & -20.3 & 0.016 & -4.58 \\
+post covid us & asian call & WDRO-T & -18.9 & 0.005 & -8.28 \\
+post covid us & asian call & 3SCH & +2.0 & 0.280 & +0.85 \\
+post covid us & asian call & RSE & -10.2 & 0.009 & -6.07 \\
+post covid us & digital call & Transformer & -10.5 & 0.000 & -112.22 \\
+post covid us & digital call & WDRO-T & -10.4 & 0.001 & -23.61 \\
+post covid us & digital call & 3SCH & +0.0 & 0.972 & +0.02 \\
+post covid us & digital call & RSE & -5.7 & 0.004 & -9.71 \\
+post covid us & down in put & Transformer & +6.4 & 0.443 & +0.55 \\
+post covid us & down in put & WDRO-T & +6.7 & 0.451 & +0.54 \\
+post covid us & down in put & 3SCH & -0.6 & 0.254 & -0.92 \\
+post covid us & down in put & RSE & +0.9 & 0.199 & +1.09 \\
+post covid us & european call & Transformer & -10.9 & 0.027 & -3.41 \\
+post covid us & european call & WDRO-T & -10.6 & 0.045 & -2.63 \\
+post covid us & european call & 3SCH & +2.8 & 0.033 & +3.11 \\
+post covid us & european call & RSE & -1.7 & 0.060 & -2.25 \\
+post covid us & european put & Transformer & -12.8 & 0.033 & -3.08 \\
+post covid us & european put & WDRO-T & -11.6 & 0.048 & -2.54 \\
+post covid us & european put & 3SCH & +4.4 & 0.121 & +1.50 \\
+post covid us & european put & RSE & -0.0 & 0.998 & -0.00 \\
+post covid us & up out call & Transformer & -10.9 & 0.027 & -3.41 \\
+post covid us & up out call & WDRO-T & -10.6 & 0.045 & -2.63 \\
+post covid us & up out call & 3SCH & +2.8 & 0.033 & +3.11 \\
+post covid us & up out call & RSE & -1.7 & 0.060 & -2.25 \\
+\bottomrule\end{tabular}\end{table}
