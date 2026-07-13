@@ -1,0 +1,19 @@
+============================================================
+FULL DEEP HEDGING EXPERIMENTS (10 seeds per paper.tex)
+============================================================
+Models: ['LSTM', 'Transformer', 'RVSN', 'W-DRO-T', 'SAC-CVaR', 'RSE', '3SCH']
+Seeds: [42, 142, 242, 342, 442, 542, 642, 742, 842, 942]
+Training samples: 50000
+Risk-free rate r: 0.0
+Device: cuda
+Checkpoint: /content/deep-hedging/new_approaches/results/checkpoint_full.pkl
+============================================================
+Progress: 0/70 runs completed
+
+============================================================
+Training LSTM
+============================================================
+LSTM:   0%|          | 0/10 [00:00<?, ?it/s]
+  Running LSTM with seed 42...
+  Generating data...
+Generating training data (50000 samples)...

@@ -1,0 +1,8 @@
+[sanity] torch 2.11.0+cu128  device=cuda
+[sanity] LSTM         out=(8, 30) finite=True  OK
+[sanity] RSE          out=(8, 30) finite=True  OK
+[sanity] RSE_rich     out=(8, 30) finite=True  OK
+[sanity] WDROT        out=(8, 30) finite=True  OK
+[sanity] WDROT_adapt  out=(8, 30) finite=True  OK
+[sanity] causality test: 2 passed in 2.54s
+[sanity] ALL OK
