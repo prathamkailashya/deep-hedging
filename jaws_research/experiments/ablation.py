@@ -37,6 +37,10 @@ from jaws_research.eval.metrics import evaluate_pnl
 OUT = ROOT / "jaws_research" / "outputs"
 RUNS = OUT / "runs"
 TABLES = OUT / "tables"
+# These output dirs are gitignored, so they may not exist on a fresh clone
+# (e.g. Colab). Create them before any run writes its CSV/PKL.
+RUNS.mkdir(parents=True, exist_ok=True)
+TABLES.mkdir(parents=True, exist_ok=True)
 
 
 def gen_data(scenario: str, n_paths: int, n_steps: int, T: float, seed: int,
