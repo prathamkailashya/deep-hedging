@@ -1,0 +1,214 @@
+[band] dev=cuda seeds=[42, 142, 242] markets=['SPY', 'NIFTY'] K=[0.0, 0.3, 0.6, 1.0, 1.5, 2.5]
+=== SPY (c=0.0003) ===
+============================================================
+Stage 1: CVaR Pretraining
+============================================================
+  Starting epoch 1 with 12 batches...
+  Epoch 1/30: CVaR = 19.5865
+  Epoch 10/30: CVaR = 9.4471, Val: 8.3612
+  Epoch 20/30: CVaR = 8.5671, Val: 7.9648
+  Epoch 30/30: CVaR = 8.4925, Val: 8.3014
+============================================================
+Stage 3: Entropic Fine-tuning
+============================================================
+  Epoch 1/20: Loss = 6.0801, Entropic = 6.0781
+  Epoch 10/20: Loss = 6.0591, Entropic = 6.0571
+  Epoch 20/20: Loss = 5.8707, Entropic = 5.8688
+============================================================
+Training Complete!
+============================================================
+  seed 42: trained LSTM in 5s
+Stage 1: CVaR Pretraining
+Pre-training base models...
+  Training lstm...
+    lstm pretrained (loss: 7.8118)
+  Training transformer...
+    transformer pretrained (loss: 8.6762)
+  Training signature...
+    signature pretrained (loss: 7.9885)
+Training gating network...
+  Epoch 10/25: Loss = 7.6090
+  Epoch 20/25: Loss = 7.7154
+  seed 42: trained RSE in 40s
+    covid_2020/LSTM[42]: K0.0:CVaR=30.45/t0.99  K0.3:CVaR=30.15/t0.90  K0.6:CVaR=29.47/t0.80  K1.0:CVaR=31.37/t0.72  K1.5:CVaR=31.11/t0.65  K2.5:CVaR=30.59/t1.00
+    covid_2020/RSE[42]: K0.0:CVaR=29.26/t1.16  K0.3:CVaR=29.30/t1.04  K0.6:CVaR=28.29/t0.84  K1.0:CVaR=27.69/t0.76  K1.5:CVaR=28.61/t0.59  K2.5:CVaR=28.84/t0.80
+    post_covid_2021/LSTM[42]: K0.0:CVaR=12.07/t0.90  K0.3:CVaR=12.13/t0.76  K0.6:CVaR=11.82/t0.64  K1.0:CVaR=12.40/t0.52  K1.5:CVaR=12.50/t0.44  K2.5:CVaR=13.37/t0.83
+    post_covid_2021/RSE[42]: K0.0:CVaR=12.56/t1.07  K0.3:CVaR=12.75/t0.88  K0.6:CVaR=12.59/t0.71  K1.0:CVaR=13.07/t0.57  K1.5:CVaR=13.58/t0.48  K2.5:CVaR=14.88/t0.73
+    gfc_2008/LSTM[42]: K0.0:CVaR=11.92/t0.95  K0.3:CVaR=11.92/t0.82  K0.6:CVaR=11.96/t0.71  K1.0:CVaR=11.86/t0.62  K1.5:CVaR=11.53/t0.55  K2.5:CVaR=11.44/t0.91
+    gfc_2008/RSE[42]: K0.0:CVaR=11.35/t1.17  K0.3:CVaR=11.41/t1.02  K0.6:CVaR=11.40/t0.84  K1.0:CVaR=11.33/t0.70  K1.5:CVaR=11.15/t0.61  K2.5:CVaR=11.05/t0.84
+============================================================
+Stage 1: CVaR Pretraining
+============================================================
+  Starting epoch 1 with 12 batches...
+  Epoch 1/30: CVaR = 29.3392
+  Epoch 10/30: CVaR = 13.6808, Val: 8.7275
+  Epoch 20/30: CVaR = 9.5298, Val: 8.5347
+  Epoch 30/30: CVaR = 9.4038, Val: 8.4062
+============================================================
+Stage 3: Entropic Fine-tuning
+============================================================
+  Epoch 1/20: Loss = 6.8736, Entropic = 6.8713
+  Epoch 10/20: Loss = 6.4534, Entropic = 6.4513
+  Epoch 20/20: Loss = 6.3529, Entropic = 6.3509
+============================================================
+Training Complete!
+============================================================
+  seed 142: trained LSTM in 4s
+Stage 1: CVaR Pretraining
+Pre-training base models...
+  Training lstm...
+    lstm pretrained (loss: 7.7383)
+  Training transformer...
+    transformer pretrained (loss: 8.9420)
+  Training signature...
+    signature pretrained (loss: 7.7484)
+Training gating network...
+  Epoch 10/25: Loss = 7.5946
+  Epoch 20/25: Loss = 7.5786
+  seed 142: trained RSE in 39s
+    covid_2020/LSTM[142]: K0.0:CVaR=52.10/t1.31  K0.3:CVaR=52.02/t1.21  K0.6:CVaR=51.57/t1.14  K1.0:CVaR=51.07/t1.07  K1.5:CVaR=47.59/t1.02  K2.5:CVaR=45.71/t0.91
+    covid_2020/RSE[142]: K0.0:CVaR=34.96/t0.95  K0.3:CVaR=34.62/t0.81  K0.6:CVaR=34.30/t0.70  K1.0:CVaR=35.36/t0.61  K1.5:CVaR=36.36/t0.51  K2.5:CVaR=36.72/t0.84
+    post_covid_2021/LSTM[142]: K0.0:CVaR=11.37/t1.14  K0.3:CVaR=11.36/t0.97  K0.6:CVaR=11.28/t0.78  K1.0:CVaR=11.46/t0.62  K1.5:CVaR=11.95/t0.48  K2.5:CVaR=12.99/t0.36
+    post_covid_2021/RSE[142]: K0.0:CVaR=11.44/t0.95  K0.3:CVaR=11.46/t0.76  K0.6:CVaR=11.40/t0.61  K1.0:CVaR=11.85/t0.48  K1.5:CVaR=12.37/t0.40  K2.5:CVaR=13.56/t0.77
+    gfc_2008/LSTM[142]: K0.0:CVaR=14.24/t1.15  K0.3:CVaR=14.26/t0.99  K0.6:CVaR=14.34/t0.84  K1.0:CVaR=14.32/t0.69  K1.5:CVaR=13.94/t0.58  K2.5:CVaR=14.03/t0.45
+    gfc_2008/RSE[142]: K0.0:CVaR=11.06/t0.97  K0.3:CVaR=11.15/t0.82  K0.6:CVaR=11.01/t0.67  K1.0:CVaR=11.15/t0.56  K1.5:CVaR=10.76/t0.49  K2.5:CVaR=11.03/t0.85
+============================================================
+Stage 1: CVaR Pretraining
+============================================================
+  Starting epoch 1 with 12 batches...
+  Epoch 1/30: CVaR = 20.3817
+  Epoch 10/30: CVaR = 10.8811, Val: 8.5026
+  Epoch 20/30: CVaR = 8.9271, Val: 8.1136
+  Epoch 30/30: CVaR = 8.7933, Val: 8.3408
+============================================================
+Stage 3: Entropic Fine-tuning
+============================================================
+  Epoch 1/20: Loss = 6.9839, Entropic = 6.9814
+  Epoch 10/20: Loss = 6.7351, Entropic = 6.7328
+  Epoch 20/20: Loss = 6.4057, Entropic = 6.4035
+============================================================
+Training Complete!
+============================================================
+  seed 242: trained LSTM in 4s
+Stage 1: CVaR Pretraining
+Pre-training base models...
+  Training lstm...
+    lstm pretrained (loss: 8.2950)
+  Training transformer...
+    transformer pretrained (loss: 8.9020)
+  Training signature...
+    signature pretrained (loss: 8.0082)
+Training gating network...
+  Epoch 10/25: Loss = 7.7949
+  Epoch 20/25: Loss = 7.7130
+  seed 242: trained RSE in 40s
+    covid_2020/LSTM[242]: K0.0:CVaR=39.23/t1.03  K0.3:CVaR=39.58/t0.92  K0.6:CVaR=38.79/t0.87  K1.0:CVaR=37.97/t0.80  K1.5:CVaR=37.07/t0.71  K2.5:CVaR=36.76/t0.69
+    covid_2020/RSE[242]: K0.0:CVaR=31.70/t1.20  K0.3:CVaR=31.80/t1.11  K0.6:CVaR=31.13/t0.89  K1.0:CVaR=30.61/t0.74  K1.5:CVaR=33.21/t0.61  K2.5:CVaR=33.89/t0.88
+    post_covid_2021/LSTM[242]: K0.0:CVaR=11.85/t0.96  K0.3:CVaR=11.72/t0.80  K0.6:CVaR=12.08/t0.65  K1.0:CVaR=11.98/t0.53  K1.5:CVaR=12.50/t0.42  K2.5:CVaR=12.72/t0.33
+    post_covid_2021/RSE[242]: K0.0:CVaR=11.85/t0.97  K0.3:CVaR=11.79/t0.79  K0.6:CVaR=11.90/t0.64  K1.0:CVaR=12.52/t0.51  K1.5:CVaR=13.38/t0.43  K2.5:CVaR=14.22/t0.76
+    gfc_2008/LSTM[242]: K0.0:CVaR=11.93/t0.96  K0.3:CVaR=11.89/t0.83  K0.6:CVaR=11.96/t0.70  K1.0:CVaR=12.13/t0.60  K1.5:CVaR=11.52/t0.51  K2.5:CVaR=11.83/t0.41
+    gfc_2008/RSE[242]: K0.0:CVaR=11.70/t1.06  K0.3:CVaR=11.76/t0.91  K0.6:CVaR=11.62/t0.74  K1.0:CVaR=11.77/t0.62  K1.5:CVaR=11.44/t0.54  K2.5:CVaR=11.37/t0.84
+=== NIFTY (c=0.0018) ===
+============================================================
+Stage 1: CVaR Pretraining
+============================================================
+  Starting epoch 1 with 11 batches...
+  Epoch 1/30: CVaR = 874.2380
+  Epoch 10/30: CVaR = 410.9427, Val: 370.1590
+  Epoch 20/30: CVaR = 384.2992, Val: 377.5331
+  Epoch 30/30: CVaR = 367.5450, Val: 385.0802
+============================================================
+Stage 3: Entropic Fine-tuning
+============================================================
+  Epoch 1/20: Loss = 467.0289, Entropic = 467.0261
+  Epoch 10/20: Loss = 404.0705, Entropic = 404.0679
+  Epoch 20/20: Loss = 419.8402, Entropic = 419.8377
+============================================================
+Training Complete!
+============================================================
+  seed 42: trained LSTM in 4s
+Stage 1: CVaR Pretraining
+Pre-training base models...
+  Training lstm...
+    lstm pretrained (loss: 344.3541)
+  Training transformer...
+    transformer pretrained (loss: 396.7092)
+  Training signature...
+    signature pretrained (loss: 359.2588)
+Training gating network...
+  Epoch 10/25: Loss = 339.9644
+  Epoch 20/25: Loss = 339.3231
+  seed 42: trained RSE in 38s
+    covid_2020/LSTM[42]: K0.0:CVaR=1197.37/t0.52  K0.3:CVaR=1251.85/t0.48  K0.6:CVaR=1307.57/t0.46  K1.0:CVaR=1368.62/t0.44  K1.5:CVaR=1428.39/t0.44  K2.5:CVaR=1183.39/t0.33
+    covid_2020/RSE[42]: K0.0:CVaR=1250.34/t0.92  K0.3:CVaR=1260.03/t0.75  K0.6:CVaR=1278.17/t0.62  K1.0:CVaR=1257.43/t0.53  K1.5:CVaR=1346.39/t0.81  K2.5:CVaR=1445.36/t0.49
+    gfc_2008/LSTM[42]: K0.0:CVaR=605.29/t0.66  K0.3:CVaR=609.81/t0.57  K0.6:CVaR=622.27/t0.50  K1.0:CVaR=611.07/t0.45  K1.5:CVaR=578.29/t0.40  K2.5:CVaR=681.29/t0.74
+    gfc_2008/RSE[42]: K0.0:CVaR=675.04/t1.02  K0.3:CVaR=686.78/t0.86  K0.6:CVaR=689.60/t0.75  K1.0:CVaR=670.36/t0.65  K1.5:CVaR=716.41/t0.95  K2.5:CVaR=741.50/t0.90
+============================================================
+Stage 1: CVaR Pretraining
+============================================================
+  Starting epoch 1 with 11 batches...
+  Epoch 1/30: CVaR = 1065.3720
+  Epoch 10/30: CVaR = 594.4669, Val: 464.1301
+  Epoch 20/30: CVaR = 451.4153, Val: 379.4937
+  Epoch 30/30: CVaR = 401.8005, Val: 377.4118
+============================================================
+Stage 3: Entropic Fine-tuning
+============================================================
+  Epoch 1/20: Loss = 413.2802, Entropic = 413.2780
+  Epoch 10/20: Loss = 375.7222, Entropic = 375.7201
+  Epoch 20/20: Loss = 398.8531, Entropic = 398.8511
+============================================================
+Training Complete!
+============================================================
+  seed 142: trained LSTM in 3s
+Stage 1: CVaR Pretraining
+Pre-training base models...
+  Training lstm...
+    lstm pretrained (loss: 346.3110)
+  Training transformer...
+    transformer pretrained (loss: 407.6279)
+  Training signature...
+    signature pretrained (loss: 362.2642)
+Training gating network...
+  Epoch 10/25: Loss = 341.0536
+  Epoch 20/25: Loss = 339.2014
+  seed 142: trained RSE in 37s
+    covid_2020/LSTM[142]: K0.0:CVaR=1363.40/t0.91  K0.3:CVaR=1366.08/t0.74  K0.6:CVaR=1385.61/t0.68  K1.0:CVaR=1365.93/t0.60  K1.5:CVaR=1432.84/t0.57  K2.5:CVaR=1453.92/t0.67
+    covid_2020/RSE[142]: K0.0:CVaR=1302.52/t1.07  K0.3:CVaR=1302.45/t0.90  K0.6:CVaR=1315.80/t0.75  K1.0:CVaR=1322.70/t0.64  K1.5:CVaR=1347.37/t0.92  K2.5:CVaR=1492.95/t0.64
+    gfc_2008/LSTM[142]: K0.0:CVaR=722.87/t0.85  K0.3:CVaR=728.48/t0.67  K0.6:CVaR=722.24/t0.57  K1.0:CVaR=724.92/t0.49  K1.5:CVaR=727.43/t0.42  K2.5:CVaR=727.33/t0.87
+    gfc_2008/RSE[142]: K0.0:CVaR=728.37/t1.09  K0.3:CVaR=733.82/t0.92  K0.6:CVaR=746.88/t0.80  K1.0:CVaR=733.59/t0.68  K1.5:CVaR=777.13/t0.97  K2.5:CVaR=755.85/t0.91
+============================================================
+Stage 1: CVaR Pretraining
+============================================================
+  Starting epoch 1 with 11 batches...
+  Epoch 1/30: CVaR = 1149.0155
+  Epoch 10/30: CVaR = 467.6762, Val: 525.9242
+  Epoch 20/30: CVaR = 398.9799, Val: 375.4755
+  Epoch 30/30: CVaR = 390.9614, Val: 341.2319
+============================================================
+Stage 3: Entropic Fine-tuning
+============================================================
+  Epoch 1/20: Loss = 380.8469, Entropic = 380.8449
+  Epoch 10/20: Loss = 389.0699, Entropic = 389.0681
+  Epoch 20/20: Loss = 370.9206, Entropic = 370.9188
+============================================================
+Training Complete!
+============================================================
+  seed 242: trained LSTM in 3s
+Stage 1: CVaR Pretraining
+Pre-training base models...
+  Training lstm...
+    lstm pretrained (loss: 361.6377)
+  Training transformer...
+    transformer pretrained (loss: 420.9463)
+  Training signature...
+    signature pretrained (loss: 363.2294)
+Training gating network...
+  Epoch 10/25: Loss = 346.5585
+  Epoch 20/25: Loss = 345.5741
+  seed 242: trained RSE in 36s
+    covid_2020/LSTM[242]: K0.0:CVaR=1152.82/t0.78  K0.3:CVaR=1193.38/t0.62  K0.6:CVaR=1092.66/t0.54  K1.0:CVaR=1254.64/t0.53  K1.5:CVaR=1327.18/t0.88  K2.5:CVaR=1345.66/t0.41
+    covid_2020/RSE[242]: K0.0:CVaR=1302.74/t0.92  K0.3:CVaR=1326.76/t0.78  K0.6:CVaR=1327.21/t0.64  K1.0:CVaR=1327.26/t0.57  K1.5:CVaR=1420.33/t0.86  K2.5:CVaR=1575.52/t0.61
+    gfc_2008/LSTM[242]: K0.0:CVaR=625.10/t0.85  K0.3:CVaR=633.00/t0.70  K0.6:CVaR=635.44/t0.60  K1.0:CVaR=618.26/t0.52  K1.5:CVaR=653.62/t0.92  K2.5:CVaR=660.96/t0.83
+    gfc_2008/RSE[242]: K0.0:CVaR=711.74/t1.02  K0.3:CVaR=711.78/t0.85  K0.6:CVaR=716.32/t0.74  K1.0:CVaR=710.85/t0.64  K1.5:CVaR=723.72/t0.93  K2.5:CVaR=766.73/t0.88
+[band] done
