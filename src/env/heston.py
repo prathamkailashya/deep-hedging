@@ -19,7 +19,7 @@ class HestonParams:
     """Heston model parameters."""
     S0: float = 100.0      # Initial stock price
     v0: float = 0.04       # Initial variance (sigma^2 = 0.2^2)
-    r: float = 0.0         # Risk-free rate
+    r: float = 0.05        # Risk-free rate
     kappa: float = 1.0     # Mean reversion speed
     theta: float = 0.04    # Long-term variance
     sigma: float = 0.2     # Volatility of volatility
@@ -182,7 +182,7 @@ class BlackScholesModel:
     dS_t = r * S_t * dt + sigma * S_t * dW_t
     """
     
-    def __init__(self, S0: float = 100.0, r: float = 0.0, sigma: float = 0.2):
+    def __init__(self, S0: float = 100.0, r: float = 0.05, sigma: float = 0.2):
         self.S0 = S0
         self.r = r
         self.sigma = sigma

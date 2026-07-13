@@ -71,7 +71,7 @@ class DataGenerator:
         T: float = 30/365,
         S0: float = 100.0,
         K: float = 100.0,
-        r: float = 0.0,
+        r: float = 0.05,
         cost_multiplier: float = 0.0,
         model_type: str = 'heston',
         heston_params: Optional[HestonParams] = None,

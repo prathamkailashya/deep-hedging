@@ -1,0 +1,17 @@
+{
+  "description": "Seed registry for the deep-hedging pass-5 experiments. Every reported number is traceable to one of these seed sets. NOTE: MPS (Apple Silicon) is not bit-deterministic even at a fixed seed; CUDA is far tighter. Report the cross-seed spread and the block-bootstrap CIs, not point estimates.",
+  "python_torch_numpy_seed_sets": {
+    "in_distribution_10seed": [42, 142, 242, 342, 442, 542, 642, 742, 842, 942],
+    "walk_forward_pass4_5": [42, 142, 242],
+    "walk_forward_colab_recommended": [42, 142, 242, 342, 442],
+    "medium_suite": [42, 142]
+  },
+  "analysis_rng_seeds": {
+    "block_bootstrap": 12345
+  },
+  "set_seed_implementation": "random.seed(s); np.random.seed(s); torch.manual_seed(s) [+ torch.cuda.manual_seed_all(s) on CUDA]; called before each model's training so models are seed-matched within a run",
+  "determinism_flags_for_max_reproducibility_cuda": {
+    "env": {"CUBLAS_WORKSPACE_CONFIG": ":4096:8"},
+    "python": "torch.use_deterministic_algorithms(True, warn_only=True)"
+  }
+}

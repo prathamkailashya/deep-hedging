@@ -1,0 +1,108 @@
+{
+  "project": "Distributionally Robust and Regime-Aware Deep Hedging Under Market Frictions",
+  "pass": 5,
+  "device_notes": "Scripts auto-detect device (MPS > CUDA > CPU). W-DRO-T needs a double-backward through attention; use CUDA (Colab) for speed. MPS ~18 min/market-seed for W-DRO-T; CUDA ~2-3 min.",
+  "models": {
+    "LSTM": "src.models.kozyra_models.HedgingLSTM (baseline)",
+    "3SCH": "HedgingLSTM trained with the 3-stage curriculum (three_stage.ThreeStageTrainer)",
+    "RSE": "new_approaches.code.rse.RegimeSwitchingEnsemble (regime-gated ensemble)",
+    "WDROT": "new_approaches.code.w_dro_t.WDROTransformerHedger (Wasserstein-DRO transformer)",
+    "WDROT_adapt": "new_approaches.code.w_dro_t_adaptive.WDROTransformerHedgerAdaptive (vol-conditioned radius; pass-5 research variant)",
+    "RSE_fric": "rse_improved.RSETrainerFrictionAware (deployment-friction / turnover-pressure training; pass-5 research variant)",
+    "RSE_rich": "rse_improved.RegimeSwitchingEnsembleRich (9-d regime features; pass-5 research variant)"
+  },
+  "experiments": [
+    {
+      "id": "E1_indist_10seed",
+      "purpose": "In-distribution Heston benchmark (paper Table 'main'); RSE lowest CVaR95",
+      "script": "new_approaches/experiments/run_full_experiments.py",
+      "command": "python new_approaches/experiments/run_full_experiments.py --all --r 0",
+      "seeds": "in_distribution_10seed",
+      "outputs": ["new_approaches/results/results_full_*.json", "new_approaches/results/checkpoint_full.pkl"],
+      "notes": "--r 0 reproduces the reported Table 1 exactly (default is 0.05)."
+    },
+    {
+      "id": "E2_tc_10seed",
+      "purpose": "TC-inclusive 10-seed rerun (paper Table 'tc_check')",
+      "script": "full_tc_validation.py",
+      "command": "python full_tc_validation.py",
+      "seeds": "in_distribution_10seed",
+      "outputs": ["full_tc_validation_results.json"]
+    },
+    {
+      "id": "E3_realmarket_full",
+      "purpose": "Regime-calibrated SPY/NIFTY stress battery, full-fidelity models (paper Table 'realmarket_full')",
+      "script": "spy_nifty_full_validation.py",
+      "command": "python spy_nifty_full_validation.py",
+      "seeds": "single/low-seed (under-each-regime, not walk-forward)",
+      "outputs": ["spy_nifty_full_validation_results.json"]
+    },
+    {
+      "id": "E4_walk_forward",
+      "purpose": "Causal walk-forward on raw OHLCV (paper Table 'walkforward'); LSTM/3SCH/RSE/WDROT, per-window PnL captured",
+      "script": "walk_forward_backtest.py",
+      "command": "python walk_forward_backtest.py --seeds 42,142,242,342,442",
+      "seeds": "walk_forward_colab_recommended",
+      "outputs": ["walk_forward_ci_results.json"],
+      "depends_on": ["network: yfinance"]
+    },
+    {
+      "id": "E5_walk_forward_bootstrap",
+      "purpose": "Paired moving-block-bootstrap CVaR95 CIs on the walk-forward cells (closes small-n crisis weakness)",
+      "script": "walk_forward_bootstrap.py",
+      "command": "python walk_forward_bootstrap.py",
+      "seeds": "analysis_rng: block_bootstrap",
+      "outputs": ["walk_forward_ci_bootstrap.json"],
+      "depends_on": ["E4_walk_forward"]
+    },
+    {
+      "id": "E6_wdrot_adaptive",
+      "purpose": "PRIORITY-1 research: adaptive vs constant Wasserstein radius, causal walk-forward",
+      "script": "wf_variants_pilot.py",
+      "command": "python wf_variants_pilot.py --which wdrot --seeds 42,142,242 --markets SPY --out wf_wdrot_results.json",
+      "seeds": "walk_forward_pass4_5",
+      "outputs": ["wf_wdrot_results.json"]
+    },
+    {
+      "id": "E7_rse_frontier",
+      "purpose": "PRIORITY-2 research: RSE turnover-CVaR frontier via friction inflation (train_tc = k x deploy_tc)",
+      "script": "wf_variants_pilot.py",
+      "command": "for k in 1 2 3; do python wf_variants_pilot.py --which rse --only RSE_base,RSE_fric --seeds 42,142,242 --markets SPY,NIFTY --fric-mult $k --out wf_rse_fric_k$k.json; done",
+      "seeds": "walk_forward_pass4_5",
+      "outputs": ["wf_rse_fric_k1.json", "wf_rse_fric_k2.json", "wf_rse_fric_k3.json"]
+    },
+    {
+      "id": "E8_rse_features_ablation",
+      "purpose": "PRIORITY-2 research: richer 9-d regime features vs baseline 6-d (ablation)",
+      "script": "wf_variants_pilot.py",
+      "command": "python wf_variants_pilot.py --which rse --only RSE_base,RSE_rich --seeds 42,142,242 --markets SPY,NIFTY --out wf_rse_features.json",
+      "seeds": "walk_forward_pass4_5",
+      "outputs": ["wf_rse_features.json"]
+    },
+    {
+      "id": "E9_no_trade_band",
+      "purpose": "Whalley-Wilmott/Zakamouline gamma-vol-scaled no-trade-band overlay; turnover-CVaR frontier. Model-agnostic, inference-only.",
+      "script": "wf_band_pilot.py",
+      "command": "python wf_band_pilot.py --seeds 42,142,242 --markets SPY,NIFTY --out wf_band_results.json && python analyze_band.py wf_band_results.json",
+      "seeds": "walk_forward_pass4_5",
+      "outputs": ["wf_band_results.json"],
+      "finding": "iso-CVaR turnover -30..-50% on low-friction (SPY); no CVaR help on high-friction NIFTY crisis (tail needs the trades)."
+    },
+    {
+      "id": "E10_cross_market_transfer",
+      "purpose": "Reviewer-flagged generalisation: train US(SPY) policy -> deploy India(NIFTY) crisis, and reverse. Frozen weights, destination friction.",
+      "script": "wf_cross_market.py",
+      "command": "python wf_cross_market.py --seeds 42,142,242 && python walk_forward_bootstrap.py --results wf_cross_market_results.json --ref LSTM --models LSTM,3SCH,RSE,WDROT --out wf_cross_market_bootstrap.json",
+      "seeds": "walk_forward_pass4_5",
+      "outputs": ["wf_cross_market_results.json", "wf_cross_market_bootstrap.json"]
+    },
+    {
+      "id": "T1_causality_test",
+      "purpose": "Regression test: walk-forward features must not depend on future closes",
+      "script": "tests/test_walkforward_causality.py",
+      "command": "python -m pytest tests/test_walkforward_causality.py -q",
+      "seeds": "n/a",
+      "outputs": ["stdout: 2 passed"]
+    }
+  ]
+}
