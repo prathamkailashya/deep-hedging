@@ -1,19 +1,38 @@
+# =====================================================================
+# deep-hedging — the GitHub artifact is CODE + reproducibility only.
+# LaTeX, theses, PDFs, images, posters and heavy binaries are excluded.
+# Files already tracked must ALSO be removed with `git rm --cached`;
+# see README section "Preparing a clean push".
+# =====================================================================
+
 # --- macOS / editor cruft ---
 .DS_Store
 **/.DS_Store
 *.swp
 *~
+.idea/
+.vscode/
 
 # --- Python ---
 __pycache__/
 *.py[cod]
 *.egg-info/
 .ipynb_checkpoints/
+.pytest_cache/
+.venv/
+venv/
 
-# --- LaTeX build artefacts ---
+# --- Manuscript / thesis / slides (kept locally, not on GitHub) ---
+*.tex
+*.bib
+paper/
+deliverable/
+jaws_research/deliverables/
+combined_report*.tex
+supplementary_material.tex
+
+# --- LaTeX build artefacts + scratch logs ---
 *.aux
-*.log
-*.out
 *.toc
 *.lof
 *.lot
@@ -25,32 +44,41 @@ __pycache__/
 *.nav
 *.snm
 *.vrb
+*.log
 
-# --- Heavy experiment outputs (re-generate via scripts) ---
-*.pkl
-*.npz
-*.parquet
-**/outputs/
-**/runs/
-**/logs/
-**/outputs/cache/
-**/outputs/logs/
-**/checkpoints/
-data/raw/
-data/processed/
+# --- Documents / images / posters (regenerated from code or the paper) ---
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+figures/
+**/figures/
+reports_png/
+reports/
+poster_figures/
 
 # --- Third-party reference material (not for redistribution) ---
 reference/
-reports_png/
-poster_figures/
 
-# --- Old / scratch directories ---
-paper/
-combined_report.original.tex
-
-# --- Local experiment snapshots that bloat the repo ---
+# --- Heavy experiment outputs (regenerate via scripts) ---
+*.pkl
+*.npz
+*.parquet
+*.pt
+*.pth
+*.ckpt
+**/outputs/
+**/runs/
+**/checkpoints/
+data/raw/
+data/processed/
 experiments/deep_hedging_full_*/
-experiments/*/figures/
-experiments/*/checkpoints/
 final_audit_experiments/results/
 new_experiments/results/
+
+# NOTE: small result JSONs (walk_forward_ci_results.json, *_bootstrap.json,
+# *_validation_results.json, experiment_manifest.json, seeds.json) ARE
+# committed as the provenance for the paper's tables — no rule above
+# matches them.

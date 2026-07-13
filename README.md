@@ -1,236 +1,88 @@
-# Deep Hedging Research Pipeline
+# Distributionally Robust and Regime-Aware Deep Hedging Under Market Frictions
 
-A fully reproducible research pipeline for replicating and extending deep hedging methodologies.
+Reproducible code for the pass-5 study of deep hedging under transaction
+costs, evaluated in-distribution (Heston), across a regime-calibrated
+SPY/NIFTY stress battery, and — most importantly — on a **causal
+walk-forward backtest of raw OHLCV** with strictly trailing features.
 
-## Overview
+> The manuscript (`paper/`, LaTeX) is compiled separately and is **not** part
+> of this code artefact by design (see `.gitignore` / `PACKAGING.md`).
 
-This repository implements:
+## What's here
 
-1. **Buehler et al. (Deep Hedging)** - Section 5: Numerical Experiments
-2. **Kozyra (Oxford MSc thesis)** - RNN/LSTM and two-stage training
-3. **Enhanced models** - Transformer, Signature features, RL agents
-4. **Real data validation** - US and Indian markets
+| Model | Idea |
+|---|---|
+| **LSTM** | recurrent hedger (baseline, Kozyra two-stage) |
+| **3SCH** | three-stage CVaR→mixed→entropic curriculum |
+| **RSE** | regime-switching ensemble (LSTM+Transformer+Signature, gated by a 4-regime classifier) |
+| **W-DRO-T** | Wasserstein-DRO transformer (gradient-norm dual penalty) |
+| **research variants** | adaptive (vol-conditioned) Wasserstein radius; friction-aware / rich-feature RSE; **Whalley–Wilmott no-trade-band overlay** |
 
-## Mathematical Setup
+### Headline findings (pilot-validated; full multi-seed on Colab)
+- **RSE** attains the lowest in-distribution CVaR₉₅ (−3.29% vs LSTM, d=−7.41).
+- The causal walk-forward is **friction-conditional**: RSE wins the SPY (3 bps)
+  crisis cells; the low-turnover baseline wins the NIFTY (18 bps) book.
+- **W-DRO-T's DRO penalty is numerically inert** (~0.016% of the loss at ε=0.1),
+  so it behaves like an entropic transformer — a mechanistic characterization,
+  not a win.
+- The **no-trade-band overlay** cuts turnover ~30–50% at iso-CVaR on low-friction
+  (US) books; it does not help high-friction crisis cells (the CVaR tail needs
+  the trades a mean-variance-optimal band suppresses).
 
-### Time Grid
-$$0 = t_0 < t_1 < \dots < t_n = T, \quad n = 30, \quad T = \frac{30}{365}$$
-
-### Heston Model (Risk-Neutral)
-$$dS_t = r S_t \, dt + \sqrt{v_t} S_t \, dW_t^S$$
-$$dv_t = \kappa(\theta - v_t)\,dt + \sigma \sqrt{v_t}\, dW_t^v$$
-$$\text{corr}(W^S, W^v) = \rho$$
-
-### Terminal P&L
-$$\text{P\&L} = -Z + \sum_{k=0}^{n-1} \delta_k (S_{k+1}-S_k) - \sum_{k=0}^{n-1} \kappa |\delta_{k+1}-\delta_k|$$
-
-### Risk Objectives
-
-**Entropic Risk (OCE):**
-$$J(\theta) = \mathbb{E}\left[\exp\left(-\lambda \cdot \text{P\&L}_\theta\right)\right]$$
-
-**Conditional Value-at-Risk:**
-$$\text{CVaR}_\alpha(X) = \frac{1}{1-\alpha}\int_0^{1-\alpha} \text{VaR}_u(X)\, du$$
-
-## Installation
-
+## Install
 ```bash
-# Clone repository
-cd deep_hedging
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# or: venv\Scripts\activate  # Windows
-
-# Install dependencies
-pip install -r requirements.txt
+pip install -r requirements.txt          # CORE block is sufficient
 ```
+Python 3.10+; PyTorch 2.1+. Device auto-detected (CUDA → MPS → CPU).
 
-## Repository Structure
-
-```
-deep_hedging/
-├── data/
-│   ├── raw/              # Raw market data
-│   └── processed/        # Processed datasets
-├── src/
-│   ├── env/              # Market simulation
-│   │   ├── heston.py     # Heston model
-│   │   ├── market_env.py # Trading environment
-│   │   └── data_generator.py
-│   ├── models/           # Neural network models
-│   │   ├── deep_hedging.py    # Buehler et al.
-│   │   ├── kozyra_models.py   # RNN/LSTM
-│   │   ├── baselines.py       # BS, Leland, WW
-│   │   ├── transformer.py     # Attention models
-│   │   ├── signature_models.py # Path signatures
-│   │   └── rl_agents.py       # PPO, DDPG, etc.
-│   ├── train/            # Training utilities
-│   │   ├── trainer.py
-│   │   ├── kozyra_trainer.py
-│   │   ├── losses.py
-│   │   └── optuna_tuning.py
-│   ├── eval/             # Evaluation
-│   │   ├── evaluator.py
-│   │   └── plotting.py
-│   └── utils/            # Utilities
-│       ├── config.py
-│       ├── logging_utils.py
-│       ├── statistics.py
-│       └── real_data.py
-├── notebooks/            # Jupyter notebooks
-├── experiments/          # Experiment scripts
-├── figures/              # Output figures
-├── reports/              # Technical report
-├── requirements.txt
-└── README.md
-```
-
-## Quick Start
-
-### 1. Run All Experiments
-
+## Reproduce
 ```bash
-cd experiments
-python run_experiments.py --experiment all --seed 42
+python sanity_check.py           # fast smoke test (model forwards + causality test)
+bash run_all.sh core             # causal walk-forward battery (5 seeds) + bootstrap CIs
+bash run_all.sh improved         # no-trade band, adaptive-DRO, RSE frontier, features
+bash run_all.sh transfer         # cross-market transfer US<->India
+bash run_all.sh indist           # in-distribution 10-seed + TC + regime stress
+bash run_all.sh full             # everything
+```
+Single experiment for debugging: `bash run_single_experiment.sh {walkforward|band|transfer|wdrot|rse}`.
+On a GPU use **Google Colab** — see **`COLAB_RUN.md`** (the W-DRO-T
+double-backward is ~6× faster on CUDA than Apple MPS).
+
+## Repository structure
+```
+walk_forward_backtest.py     causal OHLCV walk-forward battery (LSTM/3SCH/RSE/WDROT), per-window PnL
+walk_forward_bootstrap.py    paired moving-block-bootstrap CVaR95 CIs (configurable --ref/--models)
+wf_band_pilot.py             Whalley–Wilmott no-trade-band sweep;  analyze_band.py summarises it
+wf_cross_market.py           cross-market transfer (train US<->India, deploy on crisis)
+wf_variants_pilot.py         adaptive-DRO vs vanilla; friction-aware / rich-feature RSE
+sanity_check.py              fast smoke test         run_all.sh / run_single_experiment.sh  orchestration
+push_results.sh              persist result JSONs to GitHub (PAT via env, no secrets on disk)
+experiment_manifest.json     every experiment (script, command, seeds, outputs)   seeds.json  seed registry
+src/                         env (Heston/Bates), models (LSTM/transformer), losses (entropic/CVaR)
+new_approaches/code/         three_stage, rse, w_dro_t, + pass-5: w_dro_t_adaptive, rse_improved, no_trade_band
+new_approaches/experiments/  run_full_experiments.py (in-distribution 10-seed; --r for Table-1 reproduction)
+tests/                       test_walkforward_causality.py (feature causality regression, 2 passed)
 ```
 
-### 2. Run Specific Experiments
+## Outputs
+Each script writes a small JSON to the repo root (schema
+`state[market][cell][model][seed] = metrics`, with a per-window `pnl`
+list for bootstrapping). Logs go to `results/logs/`. These JSONs are the
+provenance for the paper's tables and are committed; large pickles,
+checkpoints, datasets, figures and the LaTeX are gitignored.
 
-```bash
-# Deep Hedging replication
-python run_experiments.py --experiment deep_hedging
+## Hardware
+Small: batch 64–256, `d_model` 64. < 2 GB GPU RAM; a free Colab **T4**
+suffices. CPU works but W-DRO-T is slow. Runtime budget: see `COLAB_RUN.md`.
 
-# Kozyra RNN/LSTM
-python run_experiments.py --experiment kozyra
-
-# With transaction costs
-python run_experiments.py --experiment all --cost 0.001
+## Reproducibility
+- Seeds in `seeds.json`; every experiment enumerated in `experiment_manifest.json`.
+- Report the cross-seed spread **and** the block-bootstrap CIs — MPS is not
+  bit-deterministic at a fixed seed (~15% drift on RSE crisis cells); CUDA is
+  tighter. For maximal determinism on CUDA set
+  `torch.use_deterministic_algorithms(True, warn_only=True)` and
+  `CUBLAS_WORKSPACE_CONFIG=:4096:8`.
 ```
-
-### 3. Use in Python
-
-```python
-from src.utils.config import Config, set_seed
-from src.env.data_generator import DataGenerator
-from src.models.deep_hedging import DeepHedgingModel
-from src.train.trainer import DeepHedgingTrainer
-
-# Setup
-set_seed(42)
-config = Config()
-
-# Generate data
-generator = DataGenerator(n_steps=30, T=30/365)
-train_data, val_data, test_data = generator.generate_train_val_test()
-train_loader, val_loader, test_loader = generator.get_dataloaders(
-    train_data, val_data, test_data
-)
-
-# Create and train model
-model = DeepHedgingModel(
-    input_dim=train_data.n_features,
-    n_steps=30,
-    lambda_risk=1.0
-)
-
-trainer = DeepHedgingTrainer(model, learning_rate=0.005)
-history = trainer.fit(train_loader, val_loader, n_epochs=100)
-
-# Evaluate
-metrics, pnl, deltas = trainer.evaluate(test_loader)
-print(f"Mean P&L: {metrics['mean_pnl']:.4f}")
-print(f"CVaR 95%: {metrics['cvar_95']:.4f}")
+git clone -b research/pass5-improvements https://github.com/prathamkailashya/deep-hedging.git
+cd deep-hedging && pip install -r requirements.txt && bash run_all.sh core
 ```
-
-## Model Architectures
-
-### Buehler et al. Semi-Recurrent Network
-- Per-time-step neural network
-- 3 layers: N₀=2d, N₁=N₂=d+15, N₃=d
-- ReLU activation with Batch Normalization
-- Adam optimizer, lr=0.005, batch_size=256
-
-### Kozyra RNN/LSTM
-```python
-from src.models.kozyra_models import HedgingRNN
-
-model = HedgingRNN(
-    state_dim=4,
-    hidden_size=50,
-    num_layers=2
-)
-```
-
-### Two-Stage Training
-```python
-from src.train.kozyra_trainer import KozyraTwoStageTrainer
-
-trainer = KozyraTwoStageTrainer(
-    model,
-    gamma=1e-3,      # Transaction cost penalty
-    nu=1e8,          # Band penalty
-    band_width=0.15  # No-transaction band
-)
-
-# Stage 1: CVaR pretraining
-trainer.train_stage1(train_loader, val_loader)
-
-# Stage 2: Fine-tuning with constraints
-trainer.train_stage2(train_loader, val_loader)
-```
-
-## Baselines
-
-- **Black-Scholes Delta**: Δ = N(d₁)
-- **Leland Adjusted Delta**: Modified volatility for transaction costs
-- **Whalley-Wilmott**: No-transaction band strategy
-
-## Evaluation Metrics
-
-- Mean P&L, Standard Deviation
-- VaR (95%, 99%)
-- CVaR / Expected Shortfall
-- Entropic Risk
-- Indifference Price
-- Trading Volume, Transaction Costs
-- Bootstrap confidence intervals (1000 resamples)
-
-## Real Data
-
-```python
-from src.utils.real_data import get_hedging_data_for_ticker
-
-# US market
-data = get_hedging_data_for_ticker('SPY', lookback_days=365)
-
-# Indian market
-data = get_hedging_data_for_ticker('RELIANCE.NS', is_indian=True)
-```
-
-## Citations
-
-```bibtex
-@article{buehler2019deep,
-  title={Deep hedging},
-  author={Buehler, Hans and Gonon, Lukas and Teichmann, Josef and Wood, Ben},
-  journal={Quantitative Finance},
-  year={2019}
-}
-
-@mastersthesis{kozyra2021deep,
-  title={Deep Hedging with RNNs},
-  author={Kozyra, Michal},
-  school={University of Oxford},
-  year={2021}
-}
-```
-
-## License
-
-MIT License
-
-## Authors
-
-Research Pipeline for Thesis Work

@@ -90,25 +90,31 @@ WEIGHT_DECAY = 1e-4
 GRAD_CLIP = 5.0
 
 
-def get_heston_params():
+def get_heston_params(r: float = 0.05):
     return HestonParams(
-        S0=100.0, v0=0.04, r=0.0,
+        S0=100.0, v0=0.04, r=r,
         kappa=1.0, theta=0.04, sigma=0.2, rho=-0.7
     )
 
 
-def generate_data(seed: int, n_train: int = N_TRAIN):
-    """Generate data with 5 features per paper.tex."""
+def generate_data(seed: int, n_train: int = N_TRAIN, r: float = 0.05):
+    """Generate data with 5 features per paper.tex.
+
+    ``r`` is the annualised risk-free rate used both for the Heston drift
+    and for the Black--Scholes delta feature. It defaults to 0.05 (the
+    working-tree default); pass ``r=0.0`` to reproduce the Table 1 runs,
+    which were generated under a zero rate.
+    """
     set_seed(seed)
-    
+
     generator = DataGenerator(
         n_steps=N_STEPS,
         T=30/365,
         S0=100.0,
         K=100.0,
-        r=0.0,
+        r=r,
         model_type='heston',
-        heston_params=get_heston_params()
+        heston_params=get_heston_params(r)
     )
     
     train_data, val_data, test_data = generator.generate_train_val_test(
@@ -535,7 +541,8 @@ def run_experiments(
     seeds: List[int] = SEEDS,
     n_train: int = N_TRAIN,
     device: str = 'cpu',
-    resume: bool = True
+    resume: bool = True,
+    r: float = 0.05
 ):
     """Run full experiments with checkpointing."""
     results_dir = ROOT / 'new_approaches' / 'results'
@@ -556,6 +563,7 @@ def run_experiments(
     print(f"Models: {models}")
     print(f"Seeds: {seeds}")
     print(f"Training samples: {n_train}")
+    print(f"Risk-free rate r: {r}")
     print(f"Device: {device}")
     print(f"Checkpoint: {checkpoint_path}")
     print("=" * 60)
@@ -589,7 +597,7 @@ def run_experiments(
             
             # Generate data
             print(f"  Generating data...")
-            train_loader, val_loader, test_loader, test_data = generate_data(seed, n_train)
+            train_loader, val_loader, test_loader, test_data = generate_data(seed, n_train, r)
             
             # Train
             try:
@@ -668,6 +676,9 @@ def main():
     parser.add_argument('--baselines', action='store_true', help='Run baselines only')
     parser.add_argument('--novel', action='store_true', help='Run novel models only')
     parser.add_argument('--n-train', type=int, default=N_TRAIN, help='Training samples')
+    parser.add_argument('--r', type=float, default=0.05,
+                        help='Annualised risk-free rate for the Heston drift and '
+                             'BS-delta feature (default 0.05; use --r 0 to reproduce Table 1)')
     parser.add_argument('--device', type=str, default=DEFAULT_DEVICE, help='Device (auto-detects MPS/CUDA)')
     parser.add_argument('--resume', action='store_true', default=True, help='Resume from checkpoint')
     parser.add_argument('--fresh', action='store_true', help='Start fresh (ignore checkpoint)')
@@ -690,7 +701,8 @@ def main():
         models=models,
         n_train=args.n_train,
         device=args.device,
-        resume=resume
+        resume=resume,
+        r=args.r
     )
 
 
