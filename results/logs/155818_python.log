@@ -1,0 +1,99 @@
+[variants] which=wdrot dev=cuda seeds=[42, 142, 242] markets=['SPY'] lambda=0.001
+=== SPY (tc=0.0003) 722 train windows ===
+Phase 1: CVaR Pretraining
+  Starting epoch 1 with 12 batches...
+  Epoch 1/50: CVaR Loss = 17.6948
+  Epoch 10/50: CVaR Loss = 11.4481
+  Epoch 20/50: CVaR Loss = 9.9134
+  Epoch 30/50: CVaR Loss = 8.6132
+  Epoch 40/50: CVaR Loss = 8.4761
+  Epoch 50/50: CVaR Loss = 7.6588
+Phase 2: Entropic + DRO (epsilon annealing)
+  Epoch 10: Loss = 5.3506, DRO = 0.0006, ε = 0.030
+  Epoch 20: Loss = 5.1816, DRO = 0.0012, ε = 0.063
+  Epoch 30: Loss = 5.0485, DRO = 0.0023, ε = 0.097
+  seed 42: trained WDROT_van in 453s (train_tc=0.0003)
+Phase 1: CVaR Pretraining
+  Starting epoch 1 with 12 batches...
+  Epoch 1/50: CVaR Loss = 17.6948
+  Epoch 10/50: CVaR Loss = 11.4481
+  Epoch 20/50: CVaR Loss = 9.9134
+  Epoch 30/50: CVaR Loss = 8.6132
+  Epoch 40/50: CVaR Loss = 8.4761
+  Epoch 50/50: CVaR Loss = 7.6588
+Phase 2: Entropic + DRO (epsilon annealing)
+  Epoch 10: Loss = 5.3505, DRO = 0.0005, ε = 0.030
+  Epoch 20: Loss = 5.1814, DRO = 0.0010, ε = 0.063
+  Epoch 30: Loss = 5.0481, DRO = 0.0019, ε = 0.097
+  seed 42: trained WDROT_adapt in 452s (train_tc=0.0003)
+    covid_2020/WDROT_van[42]: CVaR=51.895 turn=0.673 n=30
+    covid_2020/WDROT_adapt[42]: CVaR=51.897 turn=0.673 n=30
+    post_covid_2021/WDROT_van[42]: CVaR=11.611 turn=0.899 n=220
+    post_covid_2021/WDROT_adapt[42]: CVaR=11.612 turn=0.899 n=220
+    gfc_2008/WDROT_van[42]: CVaR=10.133 turn=0.821 n=472
+    gfc_2008/WDROT_adapt[42]: CVaR=10.133 turn=0.822 n=472
+Phase 1: CVaR Pretraining
+  Starting epoch 1 with 12 batches...
+  Epoch 1/50: CVaR Loss = 25.4000
+  Epoch 10/50: CVaR Loss = 12.7109
+  Epoch 20/50: CVaR Loss = 9.7233
+  Epoch 30/50: CVaR Loss = 9.8614
+  Epoch 40/50: CVaR Loss = 9.1477
+  Epoch 50/50: CVaR Loss = 8.6802
+Phase 2: Entropic + DRO (epsilon annealing)
+  Epoch 10: Loss = 5.7792, DRO = 0.0005, ε = 0.030
+  Epoch 20: Loss = 5.3310, DRO = 0.0013, ε = 0.063
+  Epoch 30: Loss = 5.2157, DRO = 0.0017, ε = 0.097
+  seed 142: trained WDROT_van in 450s (train_tc=0.0003)
+Phase 1: CVaR Pretraining
+  Starting epoch 1 with 12 batches...
+  Epoch 1/50: CVaR Loss = 25.4000
+  Epoch 10/50: CVaR Loss = 12.7109
+  Epoch 20/50: CVaR Loss = 9.7233
+  Epoch 30/50: CVaR Loss = 9.8614
+  Epoch 40/50: CVaR Loss = 9.1477
+  Epoch 50/50: CVaR Loss = 8.6802
+Phase 2: Entropic + DRO (epsilon annealing)
+  Epoch 10: Loss = 5.7791, DRO = 0.0005, ε = 0.030
+  Epoch 20: Loss = 5.3308, DRO = 0.0011, ε = 0.063
+  Epoch 30: Loss = 5.2156, DRO = 0.0016, ε = 0.097
+  seed 142: trained WDROT_adapt in 453s (train_tc=0.0003)
+    covid_2020/WDROT_van[142]: CVaR=52.244 turn=0.792 n=30
+    covid_2020/WDROT_adapt[142]: CVaR=52.245 turn=0.792 n=30
+    post_covid_2021/WDROT_van[142]: CVaR=11.832 turn=0.921 n=220
+    post_covid_2021/WDROT_adapt[142]: CVaR=11.832 turn=0.921 n=220
+    gfc_2008/WDROT_van[142]: CVaR=9.873 turn=0.877 n=472
+    gfc_2008/WDROT_adapt[142]: CVaR=9.874 turn=0.877 n=472
+Phase 1: CVaR Pretraining
+  Starting epoch 1 with 12 batches...
+  Epoch 1/50: CVaR Loss = 17.7366
+  Epoch 10/50: CVaR Loss = 10.7723
+  Epoch 20/50: CVaR Loss = 9.2313
+  Epoch 30/50: CVaR Loss = 8.6337
+  Epoch 40/50: CVaR Loss = 8.8172
+  Epoch 50/50: CVaR Loss = 7.7488
+Phase 2: Entropic + DRO (epsilon annealing)
+  Epoch 10: Loss = 5.2568, DRO = 0.0006, ε = 0.030
+  Epoch 20: Loss = 5.3072, DRO = 0.0014, ε = 0.063
+  Epoch 30: Loss = 5.0877, DRO = 0.0024, ε = 0.097
+  seed 242: trained WDROT_van in 450s (train_tc=0.0003)
+Phase 1: CVaR Pretraining
+  Starting epoch 1 with 12 batches...
+  Epoch 1/50: CVaR Loss = 17.7366
+  Epoch 10/50: CVaR Loss = 10.7723
+  Epoch 20/50: CVaR Loss = 9.2313
+  Epoch 30/50: CVaR Loss = 8.6337
+  Epoch 40/50: CVaR Loss = 8.8172
+  Epoch 50/50: CVaR Loss = 7.7488
+Phase 2: Entropic + DRO (epsilon annealing)
+  Epoch 10: Loss = 5.2567, DRO = 0.0005, ε = 0.030
+  Epoch 20: Loss = 5.3071, DRO = 0.0012, ε = 0.063
+  Epoch 30: Loss = 5.0874, DRO = 0.0022, ε = 0.097
+  seed 242: trained WDROT_adapt in 444s (train_tc=0.0003)
+    covid_2020/WDROT_van[242]: CVaR=55.536 turn=0.669 n=30
+    covid_2020/WDROT_adapt[242]: CVaR=55.545 turn=0.669 n=30
+    post_covid_2021/WDROT_van[242]: CVaR=11.631 turn=0.957 n=220
+    post_covid_2021/WDROT_adapt[242]: CVaR=11.631 turn=0.957 n=220
+    gfc_2008/WDROT_van[242]: CVaR=9.583 turn=0.869 n=472
+    gfc_2008/WDROT_adapt[242]: CVaR=9.584 turn=0.869 n=472
+[variants] done
