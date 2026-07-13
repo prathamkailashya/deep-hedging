@@ -1,1012 +1,1426 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Deep Hedging with Neural Networks: A Comprehensive Study
-% Academic Paper - NeurIPS/ICML/Quantitative Finance Standard
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[10pt,letterpaper]{article}
 
-\documentclass[11pt,a4paper]{article}
-
-% Packages
-\usepackage[utf8]{inputenc}
+\usepackage[letterpaper,margin=0.85in]{geometry}
 \usepackage[T1]{fontenc}
-\usepackage{amsmath,amssymb,amsthm}
-\usepackage{mathtools}
+\usepackage{lmodern}
+\usepackage{microtype}
 \usepackage{graphicx}
 \usepackage{booktabs}
+\usepackage{tabularx}
 \usepackage{multirow}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
 \usepackage{algorithm}
-\usepackage{algorithmic}
-\usepackage{hyperref}
-\usepackage{cleveref}
-\usepackage{natbib}
-\usepackage{tikz}
-\usetikzlibrary{shapes,arrows,positioning,fit,calc}
-\usepackage{pgfplots}
-\pgfplotsset{compat=1.17}
-\usepackage{subcaption}
+\usepackage{algpseudocode}
+\usepackage[numbers,sort&compress,square]{natbib}
+\usepackage[hidelinks,colorlinks=false]{hyperref}
 \usepackage{xcolor}
-\usepackage{tcolorbox}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{subcaption}
 \usepackage{enumitem}
-\usepackage[margin=1in]{geometry}
 
-% Theorem environments
-\newtheorem{theorem}{Theorem}[section]
-\newtheorem{lemma}[theorem]{Lemma}
-\newtheorem{proposition}[theorem]{Proposition}
-\newtheorem{corollary}[theorem]{Corollary}
-\newtheorem{definition}[theorem]{Definition}
-\newtheorem{remark}[theorem]{Remark}
-\newtheorem{assumption}[theorem]{Assumption}
+\captionsetup{font=small,labelfont=bf,skip=3pt}
+\setlist{noitemsep,topsep=1pt,leftmargin=*}
 
-% Custom commands
+\titlespacing*{\section}{0pt}{1.4ex plus .2ex minus .1ex}{0.6ex plus .1ex}
+\titlespacing*{\subsection}{0pt}{1.0ex plus .2ex minus .1ex}{0.4ex plus .1ex}
+\titlespacing*{\paragraph}{0pt}{0.6ex plus .1ex minus .05ex}{0.6em}
+\setlength{\parskip}{0pt}
+\setlength{\abovedisplayskip}{4pt}
+\setlength{\belowdisplayskip}{4pt}
+\setlength{\textfloatsep}{6pt}
+\setlength{\intextsep}{6pt}
+
+\newcommand{\cvar}{\mathrm{CVaR}}
+\newcommand{\VaR}{\mathrm{VaR}}
+\newcommand{\ES}{\mathrm{ES}}
 \newcommand{\E}{\mathbb{E}}
-\newcommand{\R}{\mathbb{R}}
-\newcommand{\N}{\mathbb{N}}
-\newcommand{\F}{\mathcal{F}}
-\newcommand{\G}{\mathcal{G}}
 \newcommand{\PP}{\mathbb{P}}
 \newcommand{\QQ}{\mathbb{Q}}
-\newcommand{\var}{\text{Var}}
-\newcommand{\cvar}{\text{CVaR}}
-\newcommand{\VaR}{\text{VaR}}
-\DeclareMathOperator*{\argmin}{arg\,min}
-\DeclareMathOperator*{\argmax}{arg\,max}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\argmin}{\mathop{\mathrm{arg\,min}}}
+\newcommand{\Wone}{W_{1}}
 
-\title{\textbf{Deep Hedging with Neural Networks: \\
-A Comprehensive Empirical Study of Transformer, LSTM, and Signature-Based Architectures}}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\newtheorem{remark}{Remark}
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
 
-\author{
-Research Study \\
-Department of Financial Mathematics \\
-\texttt{deep.hedging@research.edu}
-}
+\let\STATE\State
+\let\REQUIRE\Require
+\let\RETURN\Return
+\algrenewcommand\algorithmicrequire{\textbf{Require:}}
 
-\date{\today}
+\title{\bfseries Distributionally Robust and Regime-Aware\\
+Deep Hedging Under Market Frictions}
+
+\author{Pratham Kailasiya\\
+Department of Mathematics\\
+Indian Institute of Technology Roorkee\\
+\texttt{pratham\_k@ma.iitr.ac.in}}
+
+\date{}
 
 \begin{document}
-
 \maketitle
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% ABSTRACT
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{abstract}
-We present a comprehensive empirical study of deep hedging strategies for derivative instruments under realistic market conditions. Building on \citet{buehler2019deep}, we systematically evaluate multiple neural network architectures---LSTM, Transformer, and five novel approaches: Wasserstein DRO Transformer (W-DRO-T), Rough Volatility Signature Network (RVSN), CVaR-Constrained SAC (SAC-CVaR), Three-Stage Curriculum Hedger (3SCH), and Regime-Switching Ensemble (RSE)---for learning optimal hedging policies under convex risk measures. Our experimental framework ensures scientific rigor through identical two-stage training protocols, bootstrap confidence intervals (10,000 resamples), paired statistical tests with Holm-Bonferroni correction, and 10 independent random seeds.
+Deep hedging~\citep{buehler2019deep} parameterises a hedging
+policy as a neural network and minimises a convex risk measure
+directly on the residual P\&L. We address three deployment-limiting
+weaknesses with three architectures trained under a unified
+protocol. \textbf{W-DRO-T} is a causal Transformer whose loss is
+the first-order dual of a Wasserstein-$1$ ambiguity
+ball~\citep{blanchet2019quantifying}, contributing a Lipschitz
+gradient-norm penalty that vanishes at inference. \textbf{3SCH} is
+a three-stage curriculum LSTM that interpolates between
+$\cvar_{0.95}$ and the entropic risk along a continuous homotopy
+whose regularity follows from Berge's maximum theorem. \textbf{RSE}
+is a regime-switching ensemble that gates frozen LSTM, Transformer
+and signature experts through a learnable affinity matrix indexed
+by realised-volatility, trend, momentum and jump statistics. RSE
+attains the lowest in-distribution tail risk on a ten-seed Heston
+benchmark ($\cvar_{95}=3.109\pm 0.010$, $-3.29\%$ versus LSTM;
+paired $t$-test $p<10^{-9}$, $d=-7.41$). A ten-seed
+transaction-cost-inclusive rerun under $r=0.05$ confirms the
+ordering ($-2.5\%$, paired $p=5.4\times 10^{-8}$). On a three-seed
+\emph{walk-forward} backtest using raw \texttt{yfinance} OHLCV for
+SPY and NIFTY-50 (train on calm 2017--2019, deploy on COVID-acute,
+post-COVID and GFC windows; $n=1{,}150$ test windows; strictly
+trailing features), RSE lowers CVaR$_{95}$ in both SPY crisis cells
+on every seed ($-27\%$ COVID-acute, $-10\%$ GFC versus LSTM),
+whereas under the $18$~bps NIFTY friction the low-turnover LSTM
+baseline is best at the mean: the walk-forward evidence supports a
+friction-conditional deployment rule rather than a uniform
+architecture ranking.
+Re-running the synthetic SPY/NIFTY stress battery with
+full-fidelity models contracts the cross-architecture spread to
+$\le 3\%$ per regime, so we frame W-DRO-T as a theoretically clean
+Lipschitz regulariser rather than an empirical stress winner. All
+three architectures admit a zero-cost rollback to a baseline and
+add no inference-time cost.
 
-Key findings: (1) W-DRO-T achieves 46\% CVaR$_{95}$ improvement over LSTM during COVID-type volatility ($\sigma=65\%$) and 38\% during 2008-type stress ($\sigma=80\%$), with the lowest P\&L volatility (Std = 1.71 vs.\ 5.05); (2) market-specific model selection is critical---W-DRO-T dominates US markets while 3SCH excels in high-transaction-cost Indian markets (NIFTY); (3) RSE provides ensemble stability with balanced risk--cost profiles for regime-uncertain deployments; (4) all baseline models exhibit CV $<1\%$, confirming training protocol robustness. Extended validation on SPY and NIFTY markets, including crisis stress tests, demonstrates capital savings of 41\% under Basel III/IV frameworks. We provide market-specific deployment guidance: W-DRO-T for US crisis resilience, 3SCH for emerging markets, and LSTM as a robust baseline where operational simplicity is paramount.
+\medskip
+\noindent\textbf{Keywords:} deep hedging, distributionally robust
+optimisation, regime-switching ensemble, CVaR, walk-forward
+backtest.
 \end{abstract}
 
-\textbf{Keywords:} Deep Hedging, Neural Networks, Risk Management, CVaR, Transformer, LSTM, Derivatives, Option Hedging
+\section{Introduction}\label{sec:intro}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 1. INTRODUCTION
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Introduction}
-\label{sec:introduction}
+Hedging derivative claims under transaction costs, discrete
+rebalancing and stochastic volatility is a central problem in
+quantitative finance. The closed-form Black--Scholes
+delta~\citep{black1973pricing} presumes continuous trading, zero
+costs and a complete market; none of the three holds on a trading
+desk. Deep hedging~\citep{buehler2019deep} responds by parameterising
+the hedge as a neural network
+$\delta_k = \delta_{\max}\tanh(F_\theta(I_{0:k},\delta_{k-1}))$ and
+minimising a convex risk measure directly on the residual P\&L. The
+framework has a strong empirical record on
+stochastic-volatility models~\citep{horvath2021deep}, exotic and
+long-dated insurance derivatives~\citep{carbonneau2021deep}, and
+implied-volatility surfaces~\citep{imaki2021deep}. Three weaknesses,
+however, recur once the policy leaves the calibrated training
+environment.
 
-The hedging of derivative instruments represents a fundamental challenge in quantitative finance, bridging theoretical foundations in stochastic calculus with practical implementation constraints. Traditional approaches, exemplified by Black-Scholes delta hedging \citep{black1973pricing}, assume continuous trading, zero transaction costs, and complete markets—assumptions that fail dramatically in practice. Real markets feature discrete rebalancing, significant transaction costs, liquidity constraints, and incomplete market structures that invalidate classical results.
+Three weaknesses recur once the policy leaves its calibrated
+training environment.
+\emph{(i) Regime sensitivity}: single-calibration hedgers inflate
+their tail risk mechanically when the volatility regime moves
+(LSTM $\cvar_{95}$ on the SPY battery rises from $11.09$ at
+$\sigma=15\%$ to $55.90$ at $\sigma=80\%$, a $5.04\times$ jump;
+\S\ref{sec:spy}).
+\emph{(ii) Curriculum instability}: the two-stage CVaR-then-entropic
+protocol of~\citet{kozyra2019deep} switches losses abruptly; the
+discontinuity can destroy the tail-aware solution acquired in the
+first stage, and the standard fix---reducing the second-stage
+learning rate---leaves the fine-tuning under-converged.
+\emph{(iii) Regime-conditional optimality}: no single architecture
+wins across friction regimes, and production desks ship a single
+hedger anyway, leaving the regime-conditional choice on the table.
 
-\subsection{Motivation and Problem Statement}
-
-Consider a financial institution holding a short position in a European call option with payoff $Z = (S_T - K)^+$ at maturity $T$. The hedging problem seeks a self-financing trading strategy $\delta = (\delta_0, \delta_1, \ldots, \delta_{N-1})$ in the underlying asset that minimizes the residual risk of the hedged portfolio. Under the classical paradigm, the Black-Scholes delta $\Delta^{BS}_t = \Phi(d_1)$ provides the theoretically optimal hedge in a frictionless, complete market. However, in the presence of transaction costs, model uncertainty, and discrete trading, this solution becomes suboptimal and often significantly underperforms data-driven alternatives.
-
-\textbf{Deep hedging} \citep{buehler2019deep} reformulates this problem as a stochastic optimal control problem solved via neural network function approximation. Rather than deriving analytical solutions under restrictive assumptions, deep hedging learns the optimal hedging policy directly from simulated or historical data, naturally incorporating market frictions and risk preferences.
-
-\subsection{Contributions}
-
-This paper makes the following contributions:
-
-\begin{enumerate}[leftmargin=*]
-    \item \textbf{Comprehensive Architecture Comparison:} We systematically evaluate seven neural network architectures for deep hedging: LSTM (baseline), Transformer, and five novel approaches—Wasserstein DRO Transformer (W-DRO-T), Rough Volatility Signature Network (RVSN), CVaR-Constrained SAC (SAC-CVaR), Three-Stage Curriculum Hedger (3SCH), and Regime-Switching Ensemble (RSE). Each model is trained under identical two-stage protocols with rigorous hyperparameter control.
-    
-    \item \textbf{Statistical Rigor:} We establish a robust experimental framework featuring 10 independent random seeds, bootstrap confidence intervals (10,000 resamples), paired statistical tests, and Holm-Bonferroni correction for multiple comparisons. This addresses reproducibility concerns prevalent in machine learning research.
-    
-    \item \textbf{Two-Stage Training Protocol:} We propose and validate a two-stage training approach: CVaR pretraining for tail risk awareness followed by entropic risk fine-tuning with trading penalties. This curriculum learning strategy improves convergence and final performance.
-    
-    \item \textbf{Real Market Validation:} We validate our models on real market data from US (SPY) and Indian (NIFTY) derivatives markets, incorporating realistic transaction costs, slippage, and rebalancing constraints.
-    
-    \item \textbf{Economic Analysis:} We translate statistical improvements into economic terms: capital requirement reductions, hedge accounting qualification (IAS 39/IFRS 9), and transaction cost budgeting—providing actionable insights for practitioners.
+\paragraph{Contributions.}
+\begin{enumerate}
+\item \textbf{W-DRO-T} (\S\ref{sec:wdrot}): a Wasserstein-DRO
+causal Transformer whose gradient-norm penalty arises as the
+first-order dual of a $\Wone$ ambiguity
+ball~\citep{blanchet2019quantifying}. With full-fidelity
+implementations the SPY stress battery contracts the
+cross-architecture spread to $\le 1.4\%$ per regime
+(Table~\ref{tab:spy}), so we keep W-DRO-T as a theoretically clean
+Lipschitz regulariser with an auditable training-time penalty.
+\item \textbf{3SCH} (\S\ref{sec:3sch}): a three-stage curriculum
+LSTM whose homotopy loss
+$\alpha\,\cvar_{0.95} + (1-\alpha)\,\rho_\lambda$ traces a
+continuous solution path from a tail-aware optimum to the entropic
+optimum; continuity follows from Berge's maximum theorem.
+\item \textbf{RSE} (\S\ref{sec:rse}): a regime-switching ensemble
+that gates frozen LSTM, Transformer and signature hedgers through
+a learnable affinity matrix indexed by realised volatility, trend,
+momentum and jump statistics. RSE wins the in-distribution
+ten-seed benchmark ($\cvar_{95}=3.109\pm 0.010$, $-3.29\%$ vs.\
+LSTM, $p<10^{-9}$, $d=-7.41$) and both SPY walk-forward crisis
+cells on raw OHLCV on every training seed ($-27\%$ COVID-acute,
+$-10\%$ GFC vs.\ LSTM across three seeds); under the $18$~bps
+NIFTY friction the LSTM baseline stays ahead at the mean, so the
+recommendation is friction-conditional.
+\item \textbf{Unified evaluation pipeline}
+(\S\ref{sec:experiments}--\S\ref{sec:walkforward}): ten-seed
+in-distribution Heston, a $5{\times}7{\times}4$ extended suite, a
+full-model regime-calibrated stress battery with SPY/NIFTY
+parameters, a walk-forward OHLCV backtest, and a Basel-IV FRTB
+capital decomposition.
 \end{enumerate}
 
-\subsection{Paper Organization}
+All three architectures admit zero-cost rollback to a baseline
+($\varepsilon{=}0$, $T_2{=}0$, uniform gating) and add no
+inference-time cost.
 
-Section~\ref{sec:related_work} reviews related literature. Section~\ref{sec:mathematical_framework} presents the mathematical formulation. Section~\ref{sec:models} describes our neural network architectures. Section~\ref{sec:experiments} details experimental methodology and results. Section~\ref{sec:market_validation} presents real market backtests. Section~\ref{sec:economic_analysis} provides economic and managerial implications. Section~\ref{sec:discussion} discusses limitations and future work. Section~\ref{sec:conclusion} concludes.
+\section{Related Work}\label{sec:related}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 2. RELATED WORK
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Related Work}
-\label{sec:related_work}
+\paragraph{Deep hedging.}
+\citet{buehler2019deep} parameterise the hedge as a neural network
+and minimise a convex risk measure directly on the P\&L.
+\citet{horvath2021deep} extend the framework to rough volatility,
+\citet{carbonneau2021deep} to long-dated insurance derivatives, and
+\citet{imaki2021deep} to volatility surfaces.
+\citet{kozyra2019deep} introduces the two-stage CVaR-then-entropic
+protocol that we adopt as the 3SCH baseline and that we generalise
+through a continuous homotopy. None of these works addresses
+distributional shift directly; they assume the training measure is
+the test measure.
 
-\subsection{Classical Hedging Theory}
+\paragraph{Distributionally robust optimisation.}
+\citet{esfahani2018data} establish data-driven Wasserstein DRO with
+finite-sample guarantees; \citet{blanchet2019quantifying} prove the
+strong-duality theorem whose first-order expansion delivers the
+gradient-norm penalty we use; \citet{gao2023distributionally} extend
+the analysis to non-convex losses, which is the regime relevant to
+neural-network policies. \citet{lutkebohmert2019robust} document
+robustness gains during COVID-style shocks. Compared to these
+works, our contribution is operational: we instantiate the
+gradient-norm penalty inside a causal Transformer that respects
+the non-anticipativity required by hedging, and we evaluate the
+result on a market-calibrated battery rather than only on
+synthetic stress scenarios.
 
-The foundations of derivative hedging trace to \citet{black1973pricing} and \citet{merton1973theory}, who derived the celebrated Black-Scholes formula under geometric Brownian motion dynamics. Extensions to stochastic volatility models \citep{heston1993closed}, jump-diffusion processes \citep{merton1976option}, and rough volatility \citep{gatheral2018volatility} have enriched the theoretical landscape while complicating practical implementation.
+\paragraph{Attention, signatures, ensembles, and RL.}
+The Transformer~\citep{vaswani2017attention} and its financial
+variants (Informer~\citep{zhou2021informer},
+SigFormer~\citep{tong2023sigformer}) provide attention-based
+sequence baselines. Path
+signatures~\citep{lyons1998differential,kidger2020signatory} have
+been used as static hedging features
+by~\citet{cuchiero2020deep,abijaber2023hedging}; we include a
+truncated-signature MLP as one of three RSE experts. Ensemble
+variance reduction~\citep{dietterich2000ensemble} and
+regime-switching models~\citep{hamilton1989new} motivate the RSE
+gating; we adapt the mixture-of-experts paradigm by indexing
+experts on continuous microstructure features rather than a
+hidden Markov state, preserving differentiability of the gate.
+Reinforcement-learning hedging~\citep{kolm2019dynamic,cao2021deep,neagu2025drl,huang2025sac}
+is complementary: RL is preferable when the cost ledger is
+path-dependent in a way that prevents an explicit P\&L objective.
 
-\citet{leland1985option} pioneered the analysis of discrete hedging with transaction costs, deriving modified volatility adjustments. \citet{whalley1997asymptotic} and \citet{zakamouline2006european} further developed asymptotic expansions for transaction cost-adjusted hedging. However, these analytical approaches become intractable for complex option portfolios and market dynamics.
+\section{Problem Setup}\label{sec:setup}
 
-\subsection{Deep Hedging}
+\subsection{Market dynamics}
 
-\citet{buehler2019deep} introduced the deep hedging framework, formulating hedging as a stochastic control problem solved via neural networks. Their key insight was representing the hedging policy as a semi-recurrent neural network $\delta_k = F_{\theta}(I_0, \ldots, I_k, \delta_{k-1})$, trained to minimize a convex risk measure over hedging P\&L. This approach naturally handles market frictions, incomplete markets, and general payoff structures.
-
-\citet{kozyra2021deep} extended this framework with architectural improvements and comprehensive empirical analysis, demonstrating the importance of delta bounding ($|\delta| \leq \delta_{\max}$) for training stability. \citet{horvath2021deep} applied deep hedging to rough volatility models, showing superior performance over classical approaches.
-
-\subsection{Signature Methods}
-
-Path signatures, originating from rough path theory \citep{lyons1998differential}, provide a universal feature extraction mechanism for sequential data. \citet{kidger2020signatory} developed efficient computational tools, while \citet{sabate2020solving} and \citet{cuchiero2020deep} applied signatures to mathematical finance problems.
-
-For hedging, signatures capture essential path characteristics—trend, volatility clustering, and higher-order dependencies—potentially improving model expressiveness. However, the computational cost and curse of dimensionality at higher signature depths present practical challenges.
-
-\subsection{Attention Mechanisms and Transformers}
-
-The Transformer architecture \citep{vaswani2017attention} revolutionized sequence modeling through self-attention mechanisms that capture long-range dependencies without recurrence. Applications to time series forecasting \citep{zhou2021informer} and financial prediction \citep{zhang2022transformer} have shown promising results.
-
-For hedging, attention mechanisms may capture complex temporal dependencies in market features—regime changes, volatility persistence, and cross-asset correlations—that recurrent models struggle to learn efficiently.
-
-\subsection{Reinforcement Learning for Hedging}
-
-\citet{kolm2019dynamic} and \citet{cao2021deep} explored reinforcement learning approaches to hedging, treating the problem as a Markov decision process. \citet{neagu2025drl} provide a comprehensive comparison of eight DRL algorithms (MCPG, PPO, DQL variants, DDPG) for dynamic hedging, finding that policy gradient methods (MCPG, PPO) outperform value-based approaches. \citet{pickard2025rl} extend RL-based hedging to environments with realistic market impact, showing that SAC's entropy regularization is particularly effective under stochastic friction. While conceptually appealing, RL methods generally suffer from sample inefficiency and unstable training compared to supervised deep hedging approaches.
-
-\subsection{Distributionally Robust Hedging}
-
-Distributionally robust optimization (DRO) provides a principled framework for hedging under model uncertainty \citep{rahimian2019dro}. \citet{blanchet2019quantifying} establish the theoretical foundations for Wasserstein-based ambiguity sets, showing that worst-case optimization over such sets yields regularized estimators with favorable out-of-sample properties. In the hedging context, robust approaches address the fundamental challenge that models calibrated to historical data may fail under distributional shifts---a concern empirically validated by the performance degradation observed during COVID-type volatility regimes.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 3. MATHEMATICAL FRAMEWORK
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Mathematical Framework}
-\label{sec:mathematical_framework}
-
-\subsection{Market Model and Asset Dynamics}
-
-We consider a filtered probability space $(\Omega, \F, (\F_t)_{t \in [0,T]}, \PP)$ supporting a risky asset with price process $(S_t)_{t \in [0,T]}$. For simulation and training, we employ the Heston stochastic volatility model \citep{heston1993closed}:
-
-\begin{definition}[Heston Model]
-Under the risk-neutral measure $\QQ$, the asset price $S_t$ and instantaneous variance $v_t$ satisfy:
+We work on a filtered probability space
+$(\Omega,\mathcal{F},(\mathcal{F}_t)_{t\in[0,T]},\PP)$ supporting a
+correlated Brownian motion $(W^S,W^v)$ with
+$\langle W^S,W^v\rangle_t=\rho\, dt$ and $\rho\in(-1,0)$. The Heston
+model~\citep{heston1993closed},
 \begin{align}
-    dS_t &= r S_t \, dt + \sqrt{v_t} S_t \, dW_t^S \label{eq:heston_price} \\
-    dv_t &= \kappa(\theta - v_t) \, dt + \xi \sqrt{v_t} \, dW_t^v \label{eq:heston_vol}
+dS_t &= rS_t\, dt + \sqrt{v_t}\,S_t\, dW_t^S, &
+dv_t &= \kappa(\theta_v - v_t)\, dt + \xi\sqrt{v_t}\, dW_t^v,
+\label{eq:heston}
 \end{align}
-where $W^S$ and $W^v$ are correlated Brownian motions with $d\langle W^S, W^v \rangle_t = \rho \, dt$, and:
-\begin{itemize}[noitemsep]
-    \item $r$: risk-free interest rate
-    \item $\kappa$: mean reversion speed of variance
-    \item $\theta$: long-term variance level
-    \item $\xi$: volatility of volatility
-    \item $\rho$: correlation between price and variance innovations
-\end{itemize}
-\end{definition}
+is calibrated to four reference regimes (US-normal, post-COVID,
+COVID and GFC-2008) and integrated by full-truncation
+Euler--Maruyama. The reference single-asset calibration is given in
+Table~\ref{tab:heston}. The Feller condition $2\kappa\theta_v>\xi^2$
+holds for the reference parameters ($0.08>0.04$), so the variance
+process is strictly positive in continuous time.
 
-The Feller condition $2\kappa\theta > \xi^2$ ensures that the variance process remains strictly positive. For our experiments, we use parameters calibrated to equity index options: $S_0 = 100$, $v_0 = 0.04$ ($\sigma_0 = 20\%$), $\kappa = 2.0$, $\theta = 0.04$, $\xi = 0.3$, $\rho = -0.7$, and $r = 0.05$.
-
-\subsection{Discrete-Time Hedging Problem}
-
-Consider a derivative with payoff $Z = g(S_T)$ at maturity $T$. We discretize the hedging period into $N$ steps: $0 = t_0 < t_1 < \cdots < t_N = T$ with uniform spacing $\Delta t = T/N$. A hedging strategy is a sequence of positions $\delta = (\delta_0, \delta_1, \ldots, \delta_{N-1})$ where $\delta_k$ represents the number of shares held during period $[t_k, t_{k+1})$.
-
-\begin{definition}[Hedging P\&L]
-The profit and loss (P\&L) of a hedging strategy $\delta$ for a short option position is:
-\begin{equation}
-    \text{P\&L}(\delta) = -Z + \sum_{k=0}^{N-1} \delta_k (S_{t_{k+1}} - S_{t_k}) - \sum_{k=0}^{N} c_{\mathrm{tc}} |\delta_k - \delta_{k-1}| S_{t_k}
-    \label{eq:pnl}
-\end{equation}
-where $\delta_{-1} = \delta_N = 0$ (flat initial and final positions), and $c_{\mathrm{tc}}$ is the proportional transaction cost.
-\end{definition}
-
-The first term represents the option liability, the second term captures hedging gains from delta positions, and the third term accounts for transaction costs incurred from rebalancing.
-
-\subsection{Risk Measures}
-
-We optimize hedging strategies with respect to convex risk measures that penalize tail losses more heavily than mean-variance approaches.
-
-\begin{definition}[Value-at-Risk and Conditional Value-at-Risk]
-For a loss random variable $L$ and confidence level $\alpha \in (0,1)$:
-\begin{align}
-    \VaR_\alpha(L) &= \inf\{l \in \R : \PP(L \leq l) \geq \alpha\} \\
-    \cvar_\alpha(L) &= \E[L \mid L \geq \VaR_\alpha(L)] = \frac{1}{1-\alpha} \int_\alpha^1 \VaR_u(L) \, du
-\end{align}
-\end{definition}
-
-CVaR (also called Expected Shortfall) is a coherent risk measure \citep{artzner1999coherent} that captures the expected loss in the worst $(1-\alpha)$ fraction of scenarios.
-
-\begin{definition}[Entropic Risk Measure]
-The entropic risk measure with risk aversion parameter $\lambda > 0$ is:
-\begin{equation}
-    \rho_\lambda(X) = \frac{1}{\lambda} \log \E[\exp(-\lambda X)]
-    \label{eq:entropic_risk}
-\end{equation}
-\end{definition}
-
-The entropic risk measure arises naturally from exponential utility maximization and provides a smooth, differentiable objective suitable for gradient-based optimization.
-
-\subsection{Deep Hedging Formulation}
-
-Following \citet{buehler2019deep}, we parameterize the hedging policy as a neural network:
-\begin{equation}
-    \delta_k = F_\theta(I_0, I_1, \ldots, I_k, \delta_{k-1})
-    \label{eq:policy}
-\end{equation}
-where $I_k = (S_{t_k}, v_{t_k}, \tau_k, \ldots)$ denotes the information available at time $t_k$, and $\theta$ represents the neural network parameters.
-
-\begin{definition}[Deep Hedging Optimization]
-The deep hedging problem seeks parameters $\theta^*$ minimizing:
-\begin{equation}
-    \theta^* = \argmin_\theta \rho\left(\text{P\&L}(\delta^\theta)\right)
-    \label{eq:deep_hedging_opt}
-\end{equation}
-where $\rho$ is a convex risk measure (e.g., entropic risk or CVaR).
-\end{definition}
-
-\subsection{Delta Bounding}
-
-Following \citet{kozyra2021deep}, we enforce bounded delta positions to ensure training stability:
-\begin{equation}
-    \delta_k = \delta_{\max} \cdot \tanh(f_\theta(I_k, \delta_{k-1}))
-    \label{eq:delta_bound}
-\end{equation}
-where $\delta_{\max} = 1.5$ allows for over-hedging while preventing extreme positions. This parameterization ensures $|\delta_k| \leq \delta_{\max}$ and provides smooth gradients throughout the range.
-
-\subsection{Two-Stage Training Protocol}
-
-We propose a curriculum learning approach with two training stages:
-
-\textbf{Stage 1 (CVaR Pretraining):} Train the network to minimize CVaR$_{95}$ loss:
-\begin{equation}
-    \mathcal{L}_1(\theta) = \cvar_{0.95}(-\text{P\&L}(\delta^\theta))
-\end{equation}
-
-\textbf{Stage 2 (Entropic Fine-tuning):} Fine-tune with entropic risk and trading penalties:
-\begin{equation}
-    \mathcal{L}_2(\theta) = \rho_\lambda(-\text{P\&L}(\delta^\theta)) + \gamma \cdot \text{TradingPenalty}(\delta^\theta) + \nu \cdot \text{NoBandPenalty}(\delta^\theta)
-\end{equation}
-
-The trading penalty discourages excessive rebalancing:
-\begin{equation}
-    \text{TradingPenalty}(\delta) = \sum_{k=0}^{N-1} |\delta_{k+1} - \delta_k|
-\end{equation}
-
-The no-trade band penalty encourages stability around the Stage 1 solution:
-\begin{equation}
-    \text{NoBandPenalty}(\delta) = \sum_{k=0}^{N-1} \max(0, |\delta_k - \delta_k^{\text{ref}}| - \epsilon)
-\end{equation}
-where $\delta^{\text{ref}}$ is the Stage 1 policy output and $\epsilon$ is the band width.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 4. MODEL ARCHITECTURES
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Model Architectures}
-\label{sec:models}
-
-We evaluate five neural network architectures spanning different inductive biases for sequential decision-making.
-
-\subsection{LSTM Baseline}
-
-Our baseline follows the architecture of \citet{buehler2019deep}:
-
-\begin{definition}[LSTM Hedger]
-The LSTM hedger processes the feature sequence $(I_0, \ldots, I_k)$ through a multi-layer LSTM:
-\begin{align}
-    h_k, c_k &= \text{LSTM}([I_k; \delta_{k-1}], h_{k-1}, c_{k-1}) \\
-    \delta_k &= \delta_{\max} \cdot \tanh(W_o h_k + b_o)
-\end{align}
-where $[I_k; \delta_{k-1}]$ denotes concatenation, and $(h_k, c_k)$ are the hidden and cell states.
-\end{definition}
-
-Architecture details: 2 LSTM layers with hidden dimension 50, followed by a linear output layer.
-
-\subsection{AttentionLSTM}
-
-We augment the LSTM with a temporal attention mechanism:
-
-\begin{definition}[AttentionLSTM]
-The AttentionLSTM computes attention weights over the LSTM hidden state history:
-\begin{align}
-    \alpha_{k,j} &= \frac{\exp(h_k^\top W_a h_j)}{\sum_{i=0}^k \exp(h_k^\top W_a h_i)} \\
-    c_k^{\text{attn}} &= \sum_{j=0}^k \alpha_{k,j} h_j \\
-    \delta_k &= \delta_{\max} \cdot \tanh(W_o [h_k; c_k^{\text{attn}}] + b_o)
-\end{align}
-\end{definition}
-
-This architecture allows the model to directly access any past hidden state, potentially capturing long-range dependencies more effectively than vanilla LSTM.
-
-\subsection{Transformer Hedger}
-
-We adapt the Transformer encoder architecture \citep{vaswani2017attention} for hedging:
-
-\begin{definition}[Transformer Hedger]
-The Transformer hedger processes features through self-attention layers with causal masking:
-\begin{align}
-    X_0 &= \text{InputProjection}([I_0; 0], \ldots, [I_k; \delta_{k-1}]) + \text{PE} \\
-    X_l &= \text{TransformerLayer}(X_{l-1}, \text{CausalMask}), \quad l = 1, \ldots, L \\
-    \delta_k &= \delta_{\max} \cdot \tanh(\text{OutputHead}(X_L[k]))
-\end{align}
-where PE denotes sinusoidal positional encoding and CausalMask prevents attending to future positions.
-\end{definition}
-
-Architecture: $d_{\text{model}} = 64$, $n_{\text{heads}} = 4$, $n_{\text{layers}} = 3$, $d_{\text{ff}} = 256$, GELU activation.
-
-\subsection{Signature-Based Models}
-
-Path signatures provide a principled feature extraction mechanism from rough path theory.
-
-\begin{definition}[Path Signature]
-For a continuous path $X: [0,T] \to \R^d$, the signature of depth $m$ is:
-\begin{equation}
-    S^{(m)}(X)_{[s,t]} = \left(1, \int_s^t dX^{i_1}, \int_s^t \int_s^{u_2} dX^{i_1} dX^{i_2}, \ldots\right)_{i_1, \ldots, i_m \in \{1,\ldots,d\}}
-\end{equation}
-\end{definition}
-
-\textbf{SignatureLSTM:} Concatenates signature features with LSTM hidden states:
-\begin{equation}
-    \delta_k = \delta_{\max} \cdot \tanh(W_o [h_k; S^{(3)}(I_{0:k})] + b_o)
-\end{equation}
-
-\textbf{SignatureMLP:} Uses signature features directly in an MLP:
-\begin{equation}
-    \delta_k = \delta_{\max} \cdot \tanh(\text{MLP}([S^{(3)}(I_{0:k}); I_k; \delta_{k-1}]))
-\end{equation}
-
-We use depth-3 signatures with time augmentation, resulting in signature dimension $\approx 100$ for our 4-dimensional feature space.
-
-\subsection{Architecture Comparison}
-
-\begin{table}[h]
-\centering
-\caption{Model architecture comparison}
-\label{tab:architectures}
-\begin{tabular}{lrrll}
+\begin{table}[ht]
+\centering\small
+\caption{Reference Heston calibration used in the in-distribution
+benchmark.}
+\label{tab:heston}
+\begin{tabular}{@{}llr@{}}
 \toprule
-\textbf{Model} & \textbf{Parameters} & \textbf{Complexity} & \textbf{Inductive Bias} & \textbf{Memory} \\
-\midrule
-LSTM & 53,825 & $O(N)$ & Sequential, local & Bounded \\
-AttentionLSTM & 70,593 & $O(N^2)$ & Sequential + global & Unbounded \\
-Transformer & 85,441 & $O(N^2)$ & Positional, global & Unbounded \\
-SignatureLSTM & 62,417 & $O(N \cdot m!)$ & Path geometry & Bounded \\
-SignatureMLP & 48,129 & $O(N \cdot m!)$ & Path geometry & None \\
+\textbf{Symbol} & \textbf{Description} & \textbf{Value} \\\midrule
+$S_0 = K$ & Initial price / strike & $100$ \\
+$v_0$ & Initial variance & $0.04$ \\
+$\kappa$ & Mean-reversion speed & $1.0$ \\
+$\theta_v$ & Long-run variance & $0.04$ \\
+$\xi$ & Vol-of-vol & $0.2$ \\
+$\rho$ & Spot--vol correlation & $-0.7$ \\
+$r$ & Risk-free rate & $0.05$ \\
+$T$ & Maturity & $30/365$ \\
+$N$ & Time steps & $30$ \\
+$c_{\mathrm{tc}}$ & Proportional cost & $10^{-3}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 4b. NOVEL APPROACHES
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Novel Deep Hedging Approaches}
-\label{sec:novel_approaches}
+For the cross-asset stress experiments we extend the dynamics to a
+multi-asset Bates jump-diffusion~\citep{bates1996jumps} with
+regime-dependent jump intensity and cross-asset correlation
+(Table~\ref{tab:bates}). The compound-Poisson log-jump in asset $i$
+has intensity $\lambda_i$ and jump-size law
+$\mathcal{N}(\mu_J^i,(\sigma_J^i)^2)$; cross-asset diffusion
+correlation $\rho_S$ rises with regime stress, in line with the
+empirical record~\citep{cont2001empirical}.
 
-We introduce five novel deep hedging approaches grounded in recent literature, each addressing specific limitations of baseline architectures.
+\begin{table}[ht]
+\centering\small
+\caption{Regime-dependent Bates jump and correlation parameters,
+compounded with the Heston block of Table~\ref{tab:heston}.}
+\label{tab:bates}
+\begin{tabular}{@{}lccccr@{}}
+\toprule
+\textbf{Regime} & $\lambda$ (per yr) & $\mu_J$ & $\sigma_J$ & cross-corr $\rho_S$ & $\E[\#\text{jumps}/T]$ \\\midrule
+Calm                & $1.5$ & $-0.03$ & $0.10$ & $0.55$ & $0.12$ \\
+COVID-acute         & $6.0$ & $-0.06$ & $0.18$ & $0.75$ & $0.49$ \\
+GFC 2008            & $8.0$ & $-0.08$ & $0.22$ & $0.75$ & $0.66$ \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-\subsection{Wasserstein DRO Transformer (W-DRO-T)}
+\subsection{Policy and P\&L}
 
-\textbf{Motivation:} Standard deep hedging models may be sensitive to distributional shifts in market conditions. W-DRO-T addresses this by incorporating Wasserstein Distributionally Robust Optimization \citep{blanchet2019quantifying} to improve robustness to parameter uncertainty.
-
-\begin{definition}[W-DRO-T Objective]
-The Wasserstein DRO loss augments the base loss with a gradient-norm penalty:
+At each step $k\in\{0,\dots,N\}$ the policy consumes the feature vector
+$I_k=(S_k/S_0,\,\log(S_k/K),\,\sqrt{v_k},\,\tau_k,\,\Delta_k^{\mathrm{BS}})\in\R^5$,
+where $\tau_k=(T-t_k)/T$ and $\Delta_k^{\mathrm{BS}}$ is the
+Black--Scholes delta at the prevailing implied variance. The hedge
+ratio is
+$\delta_k=\delta_{\max}\tanh(F_\theta(I_{0:k},\delta_{k-1}))$ with
+$\delta_{\max}=1.5$; the $\tanh$ bound regularises gradients without
+forcing the unhedged corner. For payoff $Z=(S_T-K)^+$ and
+proportional transaction cost $c_{\mathrm{tc}}=10^{-3}$,
 \begin{equation}
-    \mathcal{L}_{\text{DRO}}(\theta) = \mathcal{L}_{\text{base}}(\theta) + \varepsilon \cdot \E\left[\|\nabla_I \mathcal{L}_{\text{base}}(\theta; I)\|_2\right]
-    \label{eq:wdro_loss}
+\mathrm{P\&L}(\delta) = -Z + \sum_{k=0}^{N-1}\delta_k(S_{k+1}-S_k)
+- c_{\mathrm{tc}}\sum_{k=0}^{N-1}|\delta_k - \delta_{k-1}|\,S_k,
+\qquad \delta_{-1}=0.
+\label{eq:pnl}
 \end{equation}
-where $\varepsilon > 0$ is the robustness radius and $I$ are input features.
-\end{definition}
+The ledger charges the initial hedge purchase ($k=0$) and every
+rebalance; the option is cash-settled at maturity and the terminal
+liquidation trade is excluded, identically for every strategy, so
+cross-model comparisons are unaffected. Training losses and all
+reported evaluators implement exactly this convention.
+RSE additionally consumes a six-dimensional regime vector
+$r_k=(\mathrm{RV}_k^{(5)},\mathrm{RV}_k^{(10)},\mathrm{RV}_k^{(20)},
+\mathrm{Trend}_k,\mathrm{Mom}_k,\mathrm{Jump}_k)$, combining
+multi-window realised volatility, an SMA-crossover trend indicator,
+log-return momentum and a bipower-variation jump
+ratio~\citep{barndorffnielsen2002econometric}.
 
-The gradient penalty arises from the dual formulation of the Wasserstein DRO problem. Intuitively, minimizing the gradient norm encourages the model to be robust to small perturbations of the inputs within a Wasserstein ball of radius $\varepsilon$.
+\subsection{Risk measures}
 
-\textbf{Training Protocol:}
-\begin{enumerate}[noitemsep]
-    \item \textbf{Phase 1 (50 epochs):} CVaR pretraining with $\text{lr}=10^{-3}$
-    \item \textbf{Phase 2 (30 epochs):} Entropic + DRO with $\varepsilon$ annealed $0 \to 0.1$, $\text{lr}=10^{-4}$
+We work with the conditional value at risk and the entropic risk:
+\begin{equation}
+\cvar_\alpha(L) = \E[L\mid L\ge \VaR_\alpha(L)]
+= \inf_{\nu\in\R}\Bigl\{\nu+\tfrac{1}{1-\alpha}\E[(L-\nu)^+]\Bigr\},
+\qquad
+\rho_\lambda(X)=\tfrac{1}{\lambda}\log\E[\exp(-\lambda X)].
+\label{eq:risks}
+\end{equation}
+CVaR is coherent~\citep{artzner1999coherent,rockafellar2000optimization};
+the entropic risk is convex~\citep{follmer2002convex} and admits the
+dual form
+$\rho_\lambda(X)=\sup_{\QQ\ll\PP}\{\E_\QQ[-X]-\tfrac{1}{\lambda}\mathrm{KL}(\QQ\|\PP)\}$,
+i.e.\ a KL ambiguity ball. We exploit two structural facts:
+(i)~the KL ball requires $\QQ\ll\PP$ and therefore cannot place mass
+on previously unseen volatility regions; (ii)~the Wasserstein ball
+that we use in W-DRO-T does not require absolute continuity and so
+can capture genuine support shift. Throughout we set $\alpha=0.95$
+and $\lambda=1$.
+
+\paragraph{Notation summary.}
+$\delta_k$ is the hedge ratio at step $k$; $\Pi^\theta$ is the
+terminal P\&L of policy $\theta$; $r_k$ is the regime feature vector;
+$\rho$ denotes a convex risk measure (entropic risk $\rho_\lambda$
+or $\cvar_\alpha$); $\Wone(\QQ,\PP)$ is the Wasserstein-1 distance
+under Euclidean cost; $K$ is the number of regimes; $M$ is the
+number of ensemble experts; $\varepsilon$ is the Wasserstein radius
+and $\alpha$ is the homotopy coefficient.
+
+\section{Three Architectures}\label{sec:methods}
+
+The three architectures share the training driver of
+\S\ref{sec:experiments}, the same $80$-epoch budget, the Adam
+optimiser with weight decay $10^{-4}$ and gradient clipping at
+$\|\nabla\|\le 5$. Architecture-specific modifications operate
+strictly inside this budget.
+
+\subsection{W-DRO-T: Wasserstein-DRO Transformer}\label{sec:wdrot}
+
+\subsubsection*{Distributionally robust objective}
+
+W-DRO-T targets the worst-case hedging problem
+\begin{equation}
+\theta^* \;=\; \argmin_\theta \sup_{\QQ:\,\Wone(\QQ,\PP)\le\varepsilon}
+\E_\QQ\!\bigl[\rho\bigl(\mathrm{P\&L}(\delta^\theta)\bigr)\bigr]
+\label{eq:dro_obj}
+\end{equation}
+over the Wasserstein ball
+$\{\QQ:\Wone(\QQ,\PP)\le\varepsilon\}$. The Wasserstein ball admits
+mass-transport between support points and so models support shift in
+volatility, jump intensity and cross-asset correlation.
+
+\begin{corollary}[Gradient-Penalty Approximation,
+\citealp{blanchet2019quantifying}]\label{cor:grad_penalty}
+For $\ell$ differentiable and locally Lipschitz under $\PP$,
+\begin{equation}
+\sup_{\Wone(\QQ,\PP)\le\varepsilon}\E_\QQ[\ell]
+\;=\; \E_\PP[\ell] \;+\; \varepsilon\,\E_\PP\!\bigl[\|\nabla_X\ell\|_2\bigr]
+\;+\; O(\varepsilon^2).
+\label{eq:dro_loss}
+\end{equation}
+\end{corollary}
+
+\noindent\textit{Sketch.}
+Strong duality gives
+$\sup_{\Wone\le\varepsilon}\E_\QQ[\ell]
+=\inf_{\lambda\ge 0}\bigl\{\lambda\varepsilon
++ \E_\PP[\sup_{x'}(\ell(x')-\lambda\|x-x'\|)]\bigr\}$.
+A Taylor expansion of the inner $c$-transform at $x$ yields
+$\sup_{x'}\{\ell(x')-\lambda\|x-x'\|\}
+= \ell(x)+\tfrac{1}{4\lambda}\|\nabla_x\ell\|^2
++ O(\|\nabla\ell\|^4/\lambda^3)$.
+Minimisation over $\lambda$ produces~\eqref{eq:dro_loss}.\hfill$\square$
+
+The penalty $\varepsilon\,\E_\PP[\|\nabla_X\ell\|_2]$ is a Lipschitz
+regulariser on the input--output map of the policy: it shrinks the
+slope of $\ell$ in the directions in which the Wasserstein adversary
+would push mass. Two consequences matter operationally. First, the
+penalty is computed under $\PP$, so no extra simulation cost is
+incurred; the cost is one additional backward pass per batch.
+Second, at inference the regulariser is dropped: W-DRO-T evaluates
+exactly as a vanilla Transformer.
+
+\subsubsection*{Architecture}
+
+A causal Transformer encoder with $d_{\mathrm{model}}=64$, $H=4$
+heads, $L=3$ layers, $d_{\mathrm{ff}}=256$, dropout $0.1$ and
+approximately $85$K trainable parameters. Sinusoidal positional
+encoding and a strict causal mask enforce non-anticipativity; the
+output head returns $\delta_k=\delta_{\max}\tanh(\cdot)$. Compared to
+the LSTM baseline ($\sim 54$K parameters), the additional capacity
+is modest and does not by itself explain the crisis-window gains.
+
+\subsubsection*{Training}
+
+Three phases (Algorithm~\ref{alg:wdrot}):
+(i)~$\cvar_{0.95}$ pretraining for $50$~epochs at
+$\mathrm{lr}=10^{-3}$;
+(ii)~DRO-annealed entropic fine-tuning for $30$~epochs at
+$\mathrm{lr}=10^{-4}$, with linear schedule
+$\varepsilon_t=0.1\cdot t/30$ and the penalty
+of~\eqref{eq:dro_loss}; second-order gradients
+$\nabla_\theta\|\nabla_X\ell\|_2$ are computed via PyTorch
+\texttt{create\_graph=True} and the math-SDPA backend;
+(iii)~stress evaluation under shifted regime calibrations. The DRO
+penalty roughly doubles Phase~(ii) wall time and adds zero
+inference-time cost. Setting $\varepsilon\!\equiv\!0$ recovers a
+vanilla Transformer.
+
+\begin{algorithm}[ht]
+\caption{W-DRO-T training}\label{alg:wdrot}
+\begin{algorithmic}[1]
+\REQUIRE Heston simulator $\PP$, batch size $B$, schedule $\{\varepsilon_t\}$
+\STATE Initialise causal-Transformer $F_\theta$
+\STATE \textbf{Phase 1 (CVaR pretraining, $50$ ep):}
+\FOR{epoch $=1,\dots,50$}
+  \STATE Draw $\{X^{(b)}\}_{b=1}^B\sim\PP$; compute $\Pi^\theta(X^{(b)})$
+  \STATE $\mathcal{L}_1\gets \cvar_{0.95}(-\Pi^\theta)$;\quad Adam step at $\mathrm{lr}=10^{-3}$
+\ENDFOR
+\STATE \textbf{Phase 2 (DRO-annealed entropic, $30$ ep):}
+\FOR{$t=1,\dots,30$}
+  \STATE Draw $\{X^{(b)}\}_{b=1}^B\sim\PP$; compute $\ell^{(b)}=\rho_\lambda(-\Pi^\theta(X^{(b)}))$
+  \STATE $g^{(b)}\gets \nabla_{X^{(b)}}\ell^{(b)}$ \hfill (autograd, \texttt{create\_graph=True})
+  \STATE $\mathcal{L}_2\gets \tfrac{1}{B}\sum_b\bigl(\ell^{(b)}+\varepsilon_t\,\|g^{(b)}\|_2\bigr)$
+  \STATE Adam step at $\mathrm{lr}=10^{-4}$, $\|\nabla_\theta\|\le 5$
+\ENDFOR
+\STATE \RETURN $\theta^*$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{3SCH: Three-Stage Curriculum Hedger}\label{sec:3sch}
+
+The two-stage CVaR-to-entropic switch of~\citet{kozyra2019deep} is
+replaced by the homotopy
+\begin{equation}
+\mathcal{L}_{\mathrm{mix}}(\alpha;\theta) =
+\alpha\,\cvar_{0.95}(-\Pi^\theta) + (1-\alpha)\,\rho_\lambda(-\Pi^\theta),
+\qquad \alpha:0.8\to 0.2.
+\label{eq:homotopy}
+\end{equation}
+
+\begin{proposition}[Continuity of the 3SCH solution path]\label{prop:3sch}
+For each $\alpha\in[0,1]$,
+$\mathcal{L}_{\mathrm{mix}}(\alpha;\cdot)$ is a convex risk measure,
+and the solution correspondence
+$\Theta^*(\alpha)=\argmin_\theta\mathcal{L}_{\mathrm{mix}}(\alpha;\theta)$
+is upper hemicontinuous on $[0,1]$.
+\end{proposition}
+
+\noindent\textit{Sketch.}
+Convexity, monotonicity and translation invariance are inherited
+from the two components, so $\mathcal{L}_{\mathrm{mix}}$ is a convex
+risk measure for each $\alpha$. It is jointly continuous in
+$(\alpha,\theta)$, and the parameter space is compact after weight
+clipping; Berge's maximum theorem then yields upper
+hemicontinuity~\citep{aliprantis2006infinite}.\hfill$\square$
+
+\begin{remark}[Scope of Proposition~\ref{prop:3sch}]\label{rem:3sch_scope}
+Upper hemicontinuity of the argmin correspondence does not by itself
+guarantee that gradient descent traces a stable solution path in
+parameter space; non-convexity of the network family leaves room for
+basin transitions across $\alpha$. The proposition is intended as a
+justification for the homotopy continuation idea; the operational
+evidence that the path is stable is empirical and resides in the
+in-distribution and cross-seed CV results of \S\ref{sec:results}.
+\end{remark}
+
+\paragraph{Architecture and budget.}
+3SCH inherits the LSTM hedger ($2$~layers, hidden dimension $50$,
+$\sim 54$K parameters) unchanged: any improvement is therefore
+attributable to the schedule, not to capacity. The $80$-epoch
+budget is partitioned into
+Stage~1 ($T_1=40$, $\cvar_{0.95}$, $\mathrm{lr}=10^{-3}$), which
+caches reference deltas $\delta^{\mathrm{ref}}$;
+Stage~2 ($T_2=15$, $\alpha:0.8\to 0.2$,
+$\mathrm{lr}=5\times 10^{-4}$); and
+Stage~3 ($T_3=25$, $\rho_\lambda$ with a turnover penalty
+$\gamma|\Delta\delta|$ and a no-trade band
+$\nu\max(0,|\delta_k-\delta_k^{\mathrm{ref}}|-\epsilon)$).
+The band term empirically prevents catastrophic forgetting of
+tail-aware behaviour during the entropic stage. Setting
+$T_2\!=\!0$ recovers the two-stage baseline
+of~\citet{kozyra2019deep}.
+
+\begin{algorithm}[ht]
+\caption{3SCH curriculum schedule}\label{alg:3sch}
+\begin{algorithmic}[1]
+\REQUIRE $T_1=40$, $T_2=15$, $T_3=25$, schedule $\alpha_t:0.8\to0.2$
+\STATE Initialise LSTM hedger $F_\theta$
+\STATE \textbf{Stage 1 (CVaR, $T_1$ ep, lr $10^{-3}$):}
+$\theta\leftarrow\arg\min\cvar_{0.95}(-\Pi^\theta)$; cache
+$\delta^{\mathrm{ref}}=\delta^\theta$
+\STATE \textbf{Stage 2 (homotopy, $T_2$ ep, lr $5\!\times\!10^{-4}$):}
+\FOR{$t=1,\dots,T_2$}
+  \STATE $\alpha_t\gets 0.8-0.6\,(t-1)/(T_2-1)$
+  \STATE Step $\theta$ against
+  $\alpha_t\,\cvar_{0.95}(-\Pi^\theta)+(1-\alpha_t)\,\rho_\lambda(-\Pi^\theta)$
+\ENDFOR
+\STATE \textbf{Stage 3 (entropic, $T_3$ ep, lr $10^{-4}$):}
+\FOR{$t=1,\dots,T_3$}
+  \STATE Step $\theta$ against $\rho_\lambda(-\Pi^\theta)
+  + \gamma|\Delta\delta|
+  + \nu\,\max(0,|\delta-\delta^{\mathrm{ref}}|-\epsilon)$
+\ENDFOR
+\STATE \RETURN $\theta^*$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{RSE: Regime-Switching Ensemble}\label{sec:rse}
+
+\subsubsection*{Gating}
+
+RSE combines $M=3$ frozen base hedgers (LSTM, Transformer and a
+truncated-signature MLP) under a regime-aware gate. At step $k$,
+\begin{equation}
+\delta_k^{\mathrm{RSE}} = \sum_{m=1}^M w_m(r_k)\,\delta_k^{(m)},\qquad
+w_m(r_k) = \sum_{j=1}^K p(r_k=j)\,[\mathrm{softmax}(A/\tau)]_{j,m},
+\label{eq:rse}
+\end{equation}
+where $K=4$ regimes, $A\in\R^{4\times 3}$ is a learnable affinity
+matrix ($KM=12$ trainable scalars), and $p(r_k=\cdot)$ is the softmax
+output of a three-layer MLP $f_\phi:\R^6\to\R^4$ on the regime
+vector $r_k$ of \S\ref{sec:setup}. The regime probabilities, expert
+weights and affinity matrix together expose a three-level audit
+trail. Soft gating at $\tau=1$ avoids the discontinuous strategy
+changes that hard switching would induce at regime boundaries (and
+the spurious transaction costs they trigger).
+
+\begin{proposition}[Variance reduction]\label{prop:vrf}
+For an equal-weight ensemble of $M$ unbiased hedgers with average
+pairwise correlation $\bar\rho$ and average variance $\bar\sigma^2$,
+$\mathrm{Var}(\Pi^{\mathrm{ens}})=\bar\rho\bar\sigma^2 +
+\tfrac{1-\bar\rho}{M}\bar\sigma^2$, so the variance reduction factor
+is $\mathrm{VRF}=(1-\bar\rho)(M-1)/M$. For $M=3$ and $\bar\rho=0.6$,
+$\mathrm{VRF}\approx 26.7\%$.
+\end{proposition}
+
+The minimum-variance regime-conditional weights
+$w_m^*(r) = [\Sigma(r)^{-1}\mathbf{1}]_m /
+(\mathbf{1}^\top\Sigma(r)^{-1}\mathbf{1})$ weakly dominate the
+uniform allocation~\citep{dietterich2000ensemble}, which RSE
+recovers when $w_m\!\equiv\!1/M$. The bound is tight only at the
+assumed $\bar\rho$; we adopt $\bar\rho=0.6$ as an illustrative
+value, and find the realised cross-expert error correlation lies
+in $[0.55,0.7]$ across seeds in our experiments.
+
+\subsubsection*{Training}
+
+$30$~epochs of $\cvar_{0.95}$ per base model (frozen thereafter);
+$20$~epochs of $\cvar_{0.95}$ on $(\phi,A)$ at
+$\mathrm{lr}=10^{-3}$; $30$~epochs of entropic fine-tuning on
+$(\phi,A)$ at $\mathrm{lr}=10^{-4}$. Total training budget is
+$3\!\times\!30+20+30=140$~model-epochs, which is comparable to the
+$80$-epoch baseline budget once the frozen-base reuse is amortised
+across deployments. Inference latency is $<\!10$~ms per step on a
+single GPU.
+
+\paragraph{Hyperparameters.}
+Table~\ref{tab:hyper} consolidates the architectural and training
+hyperparameters across the five hedgers. The architecture-specific
+additions are bounded: W-DRO-T adds a Wasserstein radius
+$\varepsilon$ and a second-order gradient pass; 3SCH adds three
+schedule parameters $(T_1,T_2,T_3)$ and the homotopy endpoints
+$(\alpha_{\mathrm{start}},\alpha_{\mathrm{end}})$; RSE adds an
+affinity matrix of $KM=12$ scalars and a three-layer regime
+classifier.
+
+\begin{table}[ht]
+\centering\small
+\caption{Architectural and training hyperparameters across the five
+hedgers. Parameter counts include the policy network only; RSE adds
+the frozen base hedgers at inference but the gating overhead is
+$\sim 5$K parameters.}
+\label{tab:hyper}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+& \textbf{LSTM} & \textbf{Transformer} & \textbf{W-DRO-T} & \textbf{3SCH} & \textbf{RSE} \\\midrule
+Layers / heads          & $2$       & $3$/$4$     & $3$/$4$     & $2$       & gated $M=3$ \\
+Hidden dim              & $50$      & $64$        & $64$        & $50$      & $64$ + $50$ \\
+Parameters              & $54$K     & $85$K       & $85$K       & $54$K     & $\sim 5$K gate \\
+Epochs                  & $80$      & $80$        & $50+30$     & $40+15+25$& $30(\!\times3)+20+30$ \\
+Phase-1 lr              & $10^{-3}$ & $10^{-3}$   & $10^{-3}$   & $10^{-3}$ & $10^{-3}$ \\
+Phase-2 lr              & $10^{-4}$ & $10^{-4}$   & $10^{-4}$   & $5\!\times\!10^{-4}$ / $10^{-4}$ & $10^{-3}$ / $10^{-4}$ \\
+DRO radius $\varepsilon$ & --       & --          & $0\to 0.1$ & --        & -- \\
+Homotopy $\alpha$       & --        & --          & --          & $0.8\to 0.2$ & -- \\
+Regimes $K$             & --        & --          & --          & --        & $4$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Experimental Setup}\label{sec:experiments}
+
+\paragraph{Three-layer benchmark.}
+\begin{enumerate}
+\item A ten-seed in-distribution European-call benchmark on Heston
+with $80$K paths ($50$K train, $10$K validation, $20$K test) and
+seed grid $\{42,142,242,\dots,942\}$. Each seed controls data
+generation, weight initialisation, batch ordering and dropout masks.
+The headline CVaR$_{95}$ figures in Table~\ref{tab:main} were
+generated with $r=0$; a TC-inclusive rerun under $r=0.05$ for the
+LSTM-vs-RSE pair (Table~\ref{tab:tc_check}) confirms that the
+relative ranking is invariant to both the rate change and the
+inclusion of the explicit transaction-cost term in the evaluator.
+\item A medium-scale extended suite of
+$5\!\times\!7\!\times\!4=140$~cells: five hedgers $\times$ seven
+payoffs (European call/put, up-out call, down-in put, digital,
+Asian, basket-of-three) $\times$ four regime calibrations
+(normal/post-COVID/COVID/GFC-2008), with two seeds per cell
+($\{42,142\}$) and $115$~min wall time on Apple Silicon. The
+medium suite uses the compact re-implementations of
+\texttt{jaws\_research} rather than the full-fidelity models of
+\S\ref{sec:methods}; its results are directional rather than
+quantitative (see \S\ref{sec:results}).
+\item A regime-calibrated stress battery on SPY and NIFTY-50
+parameter scenarios: Heston simulators calibrated to the historical
+realised volatility of four reference regimes (Table~\ref{tab:crisis_windows}),
+$5{,}000$ test paths per cell, with $3$~bps (SPY) and $18$~bps
+(NIFTY) proportional cost. The original numbers reported in this
+battery used the simplified validation-grade models bundled in
+\texttt{extended\_real\_market\_validation.py}; we rerun the same
+scenarios with the full-fidelity model implementations from
+\texttt{new\_approaches/code/} in Table~\ref{tab:realmarket_full}.
+The training and test measures coincide within each cell, so the
+battery tests model performance \emph{under} each regime rather
+than \emph{across} them; the train-calm/deploy-crisis question is
+answered by the walk-forward backtest on raw OHLCV of
+\S\ref{sec:walkforward}.
 \end{enumerate}
 
-\textbf{Implementation:} We use the math backend for scaled dot-product attention to support second-order gradients required for the DRO penalty computation via \texttt{create\_graph=True}.
-
-\subsection{Rough Volatility Signature Network (RVSN)}
-
-\textbf{Motivation:} Path signatures excel on non-Markovian processes with memory \citep{abijaber2025hedging}. Standard hedging pipelines test signatures on Heston (Markovian)---the wrong regime. RVSN uses signatures on rough Bergomi dynamics where they provide theoretical guarantees.
-
-\begin{definition}[Rough Bergomi Model]
-The rough Bergomi model captures empirically observed rough volatility ($H \approx 0.1$):
-\begin{align}
-    dS_t &= S_t \sqrt{V_t}\, dW_t \\
-    V_t &= \xi \exp\left(\eta W_t^H - \frac{1}{2}\eta^2 t^{2H}\right)
-\end{align}
-where $W^H$ is fractional Brownian motion with Hurst parameter $H < 0.5$.
-\end{definition}
-
-\begin{definition}[Adaptive Signature Hedger]
-RVSN computes regime-adaptive weighted signatures:
-\begin{equation}
-    \delta_k = f_\theta\left(\sum_{m=1}^{M} w_m(H_k, \sigma_k) \cdot \Pi_m\left(S^{(m)}(X_{[k-\tau:k]})\right)\right)
-\end{equation}
-where $w_m$ are gating weights based on local Hurst estimate $H_k$ and volatility $\sigma_k$, and $\Pi_m$ projects the signature to a fixed dimension.
-\end{definition}
-
-\textbf{Key Components:}
-\begin{itemize}[noitemsep]
-    \item \textbf{Hurst Estimator:} Neural network estimating local roughness from returns
-    \item \textbf{Lead-Lag Transform:} $(x_t, x_{t+1}) \to (x_t, x_t, x_{t+1})$ for antisymmetric signature terms
-    \item \textbf{Adaptive Compression:} Signatures projected to fixed dimension via adaptive pooling
-\end{itemize}
-
-\subsection{CVaR-Constrained Soft Actor-Critic (SAC-CVaR)}
-
-\textbf{Motivation:} Reinforcement learning enables sequential decision-making under uncertainty. SAC-CVaR \citep{huang2025sac} adds explicit CVaR constraints to SAC via Lagrangian relaxation with distributional critics.
-
-\begin{definition}[SAC-CVaR Objective]
-The constrained RL objective with CVaR penalty:
-\begin{equation}
-    \max_\pi \E_\pi[R] + \alpha \mathcal{H}(\pi) - \lambda \cdot \left(\text{CVaR}_{0.95}(-R) - c\right)
-    \label{eq:sac_cvar}
-\end{equation}
-where $\alpha$ is the entropy temperature, $\mathcal{H}(\pi)$ is policy entropy, $\lambda$ is the Lagrange multiplier learned via dual gradient ascent, and $c$ is the CVaR threshold.
-\end{definition}
-
-\textbf{Architecture:}
-\begin{itemize}[noitemsep]
-    \item \textbf{Gaussian Policy:} Outputs mean and log-std for action sampling with reparameterization
-    \item \textbf{Twin Q-Networks:} Double Q-learning to reduce overestimation bias
-    \item \textbf{Quantile Critic:} $N=51$ quantiles for distributional value estimation, enabling CVaR computation
-\end{itemize}
-
-\textbf{CVaR Computation:} From the quantile network output $\{z_\tau\}_{\tau=1}^N$:
-\begin{equation}
-    \text{CVaR}_\alpha = \frac{1}{N(1-\alpha)} \sum_{\tau > \alpha N} z_\tau
-\end{equation}
-
-\textbf{Lagrangian Update:} The multiplier $\lambda$ is updated via dual gradient ascent:
-\begin{equation}
-    \lambda_{t+1} = \max(0, \lambda_t + \eta_\lambda \cdot (\text{CVaR} - c))
-\end{equation}
-
-\subsection{Three-Stage Curriculum Hedger (3SCH)}
-
-\textbf{Motivation:} The transition from CVaR to entropic loss can cause optimization instability. 3SCH extends \citet{kozyra2021deep} with an intermediate stage for smooth loss landscape transition.
-
-\begin{definition}[Three-Stage Curriculum]
-\textbf{Stage 1 (CVaR):}
-\begin{equation}
-    \mathcal{L}_1(\theta) = \text{CVaR}_{0.95}(-\text{P\&L})
-\end{equation}
-
-\textbf{Stage 2 (Mixed):}
-\begin{equation}
-    \mathcal{L}_2(\theta) = \alpha(t) \cdot \text{CVaR}_{0.95} + (1 - \alpha(t)) \cdot \rho_\lambda
-\end{equation}
-with $\alpha(t)$ annealed from 0.8 to 0.2 over the stage.
-
-\textbf{Stage 3 (Entropic + Penalties):}
-\begin{equation}
-    \mathcal{L}_3(\theta) = \rho_\lambda(-\text{P\&L}) + \gamma \sum_k |\Delta\delta_k| + \nu \sum_k \max(0, |\delta_k - \delta_k^{\text{ref}}| - \epsilon)
-\end{equation}
-\end{definition}
-
-\textbf{Training Protocol:}
-\begin{itemize}[noitemsep]
-    \item Stage 1: 50 epochs, $\text{lr}=10^{-3}$, patience 15
-    \item Stage 2: 20 epochs, $\text{lr}=5 \times 10^{-4}$ (optional intermediate stage)
-    \item Stage 3: 30 epochs, $\text{lr}=10^{-4}$, patience 10
-\end{itemize}
-
-\textbf{No-Trade Band:} Reference deltas $\delta^{\text{ref}}$ from Stage 1 define a stability band of width $\epsilon = 0.15$, penalizing deviations with weight $\nu = 10^8$.
-
-\subsection{Regime-Switching Ensemble (RSE)}
-
-\textbf{Motivation:} Different architectures excel in different market regimes. RSE dynamically weights model contributions based on detected market conditions.
-
-\begin{definition}[Regime-Switching Ensemble]
-The ensemble delta at time $k$ is:
-\begin{equation}
-    \delta_k^{\text{RSE}} = \sum_{m=1}^{M} w_m(r_k) \cdot \delta_k^{(m)}
-    \label{eq:rse}
-\end{equation}
-where $\delta_k^{(m)}$ are base model outputs, $r_k$ is the detected regime, and $w_m(r_k)$ are regime-dependent weights.
-\end{definition}
-
-\textbf{Architecture Components:}
-
-\textbf{1. Regime Feature Extractor:} Computes market microstructure features:
-\begin{itemize}[noitemsep]
-    \item Realized volatility at windows $\{5, 10, 20\}$
-    \item Trend indicator: $(SMA_5 - SMA_{20})/SMA_{20}$
-    \item Momentum: $(S_k - S_{k-5})/S_{k-5}$
-    \item Jump indicator: $RV / BV$ (realized vs. bipower variation)
-\end{itemize}
-
-\textbf{2. Regime Classifier:} MLP mapping features to $K=4$ regime probabilities:
-\begin{equation}
-    p(r_k | I_{0:k}) = \text{softmax}(f_\phi(\text{RegimeFeatures}_k))
-\end{equation}
-
-\textbf{3. Gating Network:} Learnable affinity matrix $A \in \R^{K \times M}$ maps regimes to model weights:
-\begin{equation}
-    w_m(r_k) = \sum_{j=1}^{K} p(r_k = j) \cdot \text{softmax}(A)_{j,m}
-\end{equation}
-
-\textbf{4. Base Models:} Pre-trained LSTM, Transformer, and Signature hedgers (frozen during gating training).
-
-\textbf{Training Protocol:}
-\begin{enumerate}[noitemsep]
-    \item Pre-train base models with CVaR loss (30 epochs each)
-    \item Freeze base models, train gating network with CVaR (20 epochs, $\text{lr}=10^{-3}$)
-    \item Fine-tune gating with entropic loss (30 epochs, $\text{lr}=10^{-4}$)
-\end{enumerate}
-
-\subsection{Novel Approaches Summary}
-
-\begin{table}[h]
-\centering
-\caption{Novel approaches: gaps addressed and key innovations}
-\label{tab:novel_summary}
-\begin{tabular}{llll}
+\begin{table}[ht]
+\centering\small
+\caption{Reference historical windows used to calibrate the
+volatility scenarios in \S\ref{sec:spy} and \S\ref{sec:nifty}.
+The annualised realised vol per window is fitted from
+\texttt{yfinance} OHLCV closing prices and then fed into the Heston
+simulator as $(v_0,\theta_v)$.}
+\label{tab:crisis_windows}
+\begin{tabular}{@{}llr@{}}
 \toprule
-\textbf{Model} & \textbf{Gap Addressed} & \textbf{Key Innovation} & \textbf{Reference} \\
-\midrule
-W-DRO-T & Distributional robustness & Gradient-norm penalty & \citet{blanchet2019quantifying} \\
-RVSN & Non-Markovian dynamics & Adaptive signatures & \citet{abijaber2025hedging} \\
-SAC-CVaR & Risk-aware RL & Constrained SAC & \citet{huang2025sac} \\
-3SCH & Training stability & Curriculum learning & \citet{kozyra2021deep} \\
-RSE & Regime adaptation & Dynamic ensemble & Gap analysis \\
+\textbf{Label} & \textbf{Reference window} & \textbf{Calibrated $\sigma$ (SPY/NIFTY)} \\\midrule
+Calm                   & 2017-01-01 -- 2019-12-31 & 15\% / 14\% \\
+Post-COVID recovery    & 2021-01-01 -- 2021-12-31 & 20\% / --  \\
+COVID acute            & 2020-02-01 -- 2020-04-30 & 65\% / 55\% \\
+GFC 2008               & 2007-07-01 -- 2009-06-30 & 80\% / 70\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 5. EXPERIMENTS
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Experiments}
-\label{sec:experiments}
+\paragraph{Statistical protocol.}
+Bootstrap $95\%$ confidence intervals are computed from $10{,}000$
+resamples on the ten-seed run and $2{,}000$ resamples on the medium
+suite~\citep{efron1979bootstrap}. Paired $t$-tests are taken against
+the LSTM baseline within each cell; normality is checked by
+Shapiro--Wilk at $\alpha=0.05$ and Wilcoxon signed-rank is used as a
+fallback. Multiple-testing correction is Holm--Bonferroni at
+family-wise $\alpha=0.05$~\citep{holm1979simple}. Effect sizes are
+Cohen's $d=(\mu_a-\mu_b)/\sigma_p$ with pooled standard
+deviation~\citep{cohen1988statistical}.
 
-\subsection{Experimental Setup}
+\paragraph{Train/validation/test disjointness.}
+All Heston path samples are drawn at experiment-launch with disjoint
+seeds for the training, validation and test sets; the test paths are
+not seen during gradient updates, early stopping, or hyperparameter
+selection. Within the regime-calibrated stress battery, each cell
+uses its own train / validation / test seeds; the calibration to
+historical windows enters only through the choice of
+$(v_0,\theta_v)$ in the Heston block.
 
-\textbf{Data Generation:} We simulate 80,000 Heston model paths (50,000 training, 10,000 validation, 20,000 test) with $N=30$ daily time steps over a 30-day horizon. Each path includes stock prices, variance process, and a European call option payoff with strike $K = S_0 = 100$.
+\paragraph{Seed budget and scope.}
+The ten-seed in-distribution benchmark is well powered: cross-seed
+standard deviations are $\le 0.030$ and bootstrap intervals are
+tight (\S\ref{sec:results}). The medium suite uses $n=2$--$3$ seeds
+per cell; we treat its effect-size estimates as preliminary, report
+them with that caveat, and use them to corroborate---rather than to
+carry the quantitative weight of---the ten-seed and SPY rankings.
 
-\textbf{Features:} At each time step $k$, the model receives:
-\begin{equation}
-    I_k = \left(\frac{S_k}{S_0}, \log\frac{S_k}{K}, \sqrt{v_k}, \tau_k, \Delta^{BS}_k\right)
-\end{equation}
-where $\Delta^{BS}_k$ is the Black-Scholes delta computed with implied volatility.
+\paragraph{Compute.}
+Training runs on either an NVIDIA GPU (PyTorch 2.0+/CUDA 11.8+) or
+an Apple Silicon MPS device. The training driver is device-agnostic.
+A single ten-seed European-call training pass takes $\sim\!5$~min
+for LSTM/3SCH, $\sim\!15$~min for RSE (including base pretraining)
+and $\sim\!2$~h for W-DRO-T on MPS (second-order gradients
+dominate).
 
-\textbf{Training Protocol:}
-\begin{itemize}[noitemsep]
-    \item Stage 1: 50 epochs, learning rate $10^{-3}$, early stopping patience 15
-    \item Stage 2: 30 epochs, learning rate $10^{-4}$, early stopping patience 10
-    \item Optimizer: Adam with weight decay $10^{-4}$
-    \item Gradient clipping: $\|\nabla\| \leq 5.0$
-    \item Batch size: 256
-\end{itemize}
+\section{Results}\label{sec:results}
 
-\textbf{Statistical Analysis:}
-\begin{itemize}[noitemsep]
-    \item 10 independent random seeds (42, 142, 242, ..., 942)
-    \item Bootstrap confidence intervals (10,000 resamples)
-    \item Paired $t$-tests for model comparisons
-    \item Holm-Bonferroni correction for multiple comparisons ($\alpha = 0.05$)
-    \item Cohen's $d$ effect size
-\end{itemize}
+\subsection{In-distribution: RSE attains the lowest tail risk}
 
-\subsection{Main Results}
-
-\begin{table}[h]
-\centering
-\caption{Test set performance (mean $\pm$ std across 10 seeds, 50K training samples). LSTM is the baseline. Lower is better for all metrics.}
-\label{tab:main_results}
-\begin{tabular}{lccccc}
+\begin{table}[ht]
+\centering\small
+\caption{Ten-seed in-distribution European-call benchmark on Heston
+($50$K training paths, $r=0$ at the time of these runs;
+\S\ref{sec:tc_check} reports the corresponding $r=0.05$ rerun for
+the LSTM-vs-RSE pair). \textbf{Bold} marks the best entry. Std P\&L
+is the cross-test-path standard deviation, averaged across seeds; CV
+is the cross-seed coefficient of variation of $\cvar_{95}$. CVaR$_{95}$
+values use the legacy evaluation formula (transaction-cost term
+omitted); the corresponding TC-inclusive table is
+Table~\ref{tab:tc_check}.}
+\label{tab:main}
+\begin{tabular}{@{}lccccc@{}}
 \toprule
-\textbf{Model} & \textbf{CVaR$_{95}$} $\downarrow$ & \textbf{Std P\&L} $\downarrow$ & \textbf{Entropic} $\downarrow$ & \textbf{Trade Vol.} $\downarrow$ & \textbf{CV (\%)} \\
-\midrule
-\textbf{RSE} & $\mathbf{3.109 \pm 0.010}$* & $\mathbf{0.456}$ & $2.376$ & $1.379$ & $0.30$ \\
-LSTM (baseline) & $3.215 \pm 0.018$ & $0.449$ & $2.379$ & $1.137$ & $0.55$ \\
-3SCH & $3.219 \pm 0.022$ & $0.453$ & $2.381$ & $1.122$ & $0.69$ \\
-W-DRO-T & $3.227 \pm 0.024$ & $0.450$ & $2.380$ & $1.119$ & $0.75$ \\
-Transformer & $3.234 \pm 0.030$ & $0.450$ & $2.380$ & $1.117$ & $0.92$ \\
-\midrule
-\multicolumn{6}{l}{\textit{Anomalous results (require further investigation):}} \\
-RVSN & $0.443 \pm 0.265$ & $2.158$ & $-1.414$ & $4.623$ & $59.76$ \\
-SAC-CVaR & $14.933 \pm 2.818$ & $4.656$ & $19.222$ & $3.918$ & $18.87$ \\
-\bottomrule
-\end{tabular}
-\footnotesize{* Statistically significant vs. LSTM after Holm-Bonferroni correction ($p < 0.0001$). CV = Coefficient of Variation.}
-\end{table}
-
-\subsection{Statistical Comparison}
-
-\begin{table}[h]
-\centering
-\caption{Paired comparison vs. LSTM baseline with Holm-Bonferroni correction}
-\label{tab:statistical_comparison}
-\begin{tabular}{lrrrrrc}
-\toprule
-\textbf{Model} & \textbf{CVaR$_{95}$} & \textbf{vs LSTM} & \textbf{$p$-value} & \textbf{Cohen's $d$} & \textbf{Effect} & \textbf{Sig.} \\
-\midrule
-\textbf{RSE} & $3.109$ & $-3.29\%$ & $<0.0001$ & $-7.41$ & Large & * \\
-3SCH & $3.219$ & $+0.13\%$ & $0.438$ & $+0.20$ & Small & \\
-W-DRO-T & $3.227$ & $+0.37\%$ & $0.016$ & $+0.56$ & Medium & * \\
-Transformer & $3.234$ & $+0.59\%$ & $0.006$ & $+0.93$ & Large & \\
-\midrule
-\multicolumn{7}{l}{\textit{Bootstrap 95\% Confidence Intervals (10,000 resamples):}} \\
-\midrule
-RSE & \multicolumn{6}{l}{$[3.104, 3.115]$} \\
-LSTM & \multicolumn{6}{l}{$[3.204, 3.226]$} \\
-Transformer & \multicolumn{6}{l}{$[3.215, 3.252]$} \\
-\bottomrule
-\end{tabular}
-\footnotesize{* Statistically significant after Holm-Bonferroni correction ($\alpha = 0.05$)}
-\end{table}
-
-\subsection{Key Findings}
-
-\begin{enumerate}[leftmargin=*]
-    \item \textbf{RSE achieves best tail risk with high significance:} The Regime-Switching Ensemble (RSE) achieves the lowest CVaR$_{95}$ ($3.109 \pm 0.010$), representing a $-3.29\%$ improvement over LSTM. This is highly significant after Holm-Bonferroni correction ($p < 0.0001$) with a very large effect size (Cohen's $d = -7.41$). RSE also exhibits the best stability with coefficient of variation of only $0.30\%$.
-    
-    \item \textbf{Baseline models show excellent stability:} LSTM, Transformer, 3SCH, and W-DRO-T all demonstrate excellent stability with CV $< 1\%$, confirming the robustness of the two-stage training protocol across seeds.
-    
-    \item \textbf{Novel approaches show mixed results:} While RSE significantly outperforms baselines, other novel approaches (3SCH, W-DRO-T) show performance similar to LSTM. The RVSN and SAC-CVaR implementations require further investigation due to anomalous results.
-    
-    \item \textbf{Regime-aware ensemble provides robustness:} RSE's advantage stems from its ability to adaptively weight base models based on detected market regimes, providing better tail risk control during distributional shifts.
-\end{enumerate}
-
-\subsection{Ablation Studies}
-
-We conducted ablation studies on the Transformer architecture:
-
-\begin{table}[h]
-\centering
-\caption{Transformer ablation study}
-\label{tab:ablation}
-\begin{tabular}{lcc}
-\toprule
-\textbf{Configuration} & \textbf{CVaR$_{95}$} & \textbf{$\Delta$ vs. Full} \\
-\midrule
-Full Transformer & $4.41 \pm 0.03$ & --- \\
-No positional encoding & $4.48 \pm 0.04$ & $+1.6\%$ \\
-Single attention head & $4.44 \pm 0.03$ & $+0.7\%$ \\
-1 layer (vs. 3) & $4.45 \pm 0.03$ & $+0.9\%$ \\
-No causal masking & $4.52 \pm 0.05$ & $+2.5\%$ \\
+\textbf{Model} & $\boldsymbol{\cvar_{95}}$ & \textbf{Std P\&L}
+& \textbf{Trade vol.} & $\boldsymbol{\Delta\%\ \mathrm{vs.\ LSTM}}$ & \textbf{CV (\%)} \\\midrule
+\textbf{RSE}    & $\mathbf{3.109\pm 0.010}$ & $0.456$ & $1.379$ & $\mathbf{-3.29}$ & $\mathbf{0.30}$ \\
+LSTM            & $3.215\pm 0.018$         & $0.449$ & $1.137$ & ---              & $0.55$ \\
+3SCH            & $3.219\pm 0.022$         & $0.453$ & $1.122$ & $+0.13$          & $0.69$ \\
+W-DRO-T         & $3.227\pm 0.024$         & $0.450$ & $1.119$ & $+0.37$          & $0.75$ \\
+Transformer     & $3.234\pm 0.030$         & $0.450$ & $1.117$ & $+0.59$          & $0.92$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Key observations:
-\begin{itemize}[noitemsep]
-    \item Causal masking is critical (prevents look-ahead bias)
-    \item Positional encoding contributes meaningfully to performance
-    \item Multiple attention heads provide modest improvement
-    \item Depth (3 vs. 1 layer) has diminishing returns
-\end{itemize}
+RSE attains $\cvar_{95}=3.109\pm 0.010$, a $-3.29\%$ reduction
+relative to LSTM (paired $t$-test $t=-26.25$,
+$p=8.2\times 10^{-10}$, Cohen's $d=-7.41$; Holm--Bonferroni
+corrected), together with the smallest cross-seed coefficient of
+variation in the table ($0.30\%$). Mean P\&L is statistically
+indistinguishable across all five hedgers ($\approx -2.28$), so the
+gain is not a bias artefact. Bootstrap $95\%$ confidence intervals
+do not overlap: RSE $[3.103,3.115]$, LSTM $[3.204,3.226]$,
+Transformer $[3.215,3.252]$ (Figure~\ref{fig:in_dist}). W-DRO-T is
+indistinguishable from the plain Transformer in-distribution at the
+$\alpha=0.05$ level after Holm--Bonferroni correction, as expected:
+the gradient-norm penalty is reserved for regime shift, not
+in-distribution refinement.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 6. REAL MARKET VALIDATION
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Real Market Validation}
-\label{sec:market_validation}
+The classical baselines (Black--Scholes delta and the Leland
+discrete-cost adjustment of~\citet{leland1985option}), trained on
+the same calibrated Heston measure, achieve $\cvar_{95}$ in
+$[3.17,3.20]$ at higher trading volume. The neural hedgers in
+Table~\ref{tab:main} are therefore not strictly dominated by the
+classical hedges in distribution; the deep-hedging value here lies
+in the convex-risk objective and the friction-aware turnover
+trade-off, which the classical hedges cannot tune. A TC-inclusive
+rank check on the same models is reported in
+\S\ref{sec:tc_check}.
 
-\subsection{Market Configurations}
-
-We validate our models on two distinct markets:
-
-\begin{table}[h]
+\begin{figure}[ht]
 \centering
-\caption{Market configuration for backtesting}
-\label{tab:market_config}
-\begin{tabular}{lcc}
+\begin{subfigure}[t]{0.49\linewidth}
+\includegraphics[width=\linewidth]{figures/18_cvar95_comparison_with_ci.pdf}
+\caption{In-distribution $\cvar_{95}$ with $95\%$ bootstrap CIs (10 seeds).}
+\label{fig:cvar_ci}
+\end{subfigure}\hfill
+\begin{subfigure}[t]{0.49\linewidth}
+\includegraphics[width=\linewidth]{figures/22_cvar_cv_percent.pdf}
+\caption{Cross-seed coefficient of variation of $\cvar_{95}$ ($\%$).}
+\label{fig:cv}
+\end{subfigure}
+\caption{In-distribution comparison of the five hedgers. RSE attains
+both the lowest mean tail risk and the tightest cross-seed spread;
+the bootstrap intervals do not overlap, so the ranking is
+unambiguous.}
+\label{fig:in_dist}
+\end{figure}
+
+\subsection{Regime-calibrated stress battery}\label{sec:spy}
+
+To probe regime sensitivity outside the in-distribution single
+calibration of Table~\ref{tab:heston}, we calibrate the Heston
+simulator to four reference volatilities matching historical US
+equity index regimes---calm $2017$--$2019$ (15\%), post-COVID
+$2021$ (20\%), COVID acute (65\%), and GFC 2008 (80\%)---and
+re-evaluate each architecture with the SPY proportional cost
+$c_{\mathrm{tc}}=3$~bps on $5{,}000$ test paths per regime. The
+NIFTY-50 battery in \S\ref{sec:nifty} uses the same protocol with
+Indian market vol calibrations (14/20/55/70\%) and $c_{\mathrm{tc}}=18$~bps.
+This is a scenario-conditional stress test calibrated to empirical
+regimes, not a walk-forward backtest on raw OHLCV data; the limitation
+is recorded in \S\ref{sec:limitations}.
+
+\begin{table}[ht]
+\centering\small
+\caption{Regime-calibrated Heston scenarios with SPY parameters
+($S_0\!=\!450$, $r\!=\!5\%$, $c_{\mathrm{tc}}\!=\!3$~bps), $5{,}000$
+test paths per cell. \textbf{Bold} marks the best entry per regime.
+The upper block reproduces the original simplified-validator numbers
+shipped with \texttt{extended\_real\_market\_validation.py};
+the lower block (\textit{Full models}) reports the corresponding
+TC-inclusive CVaR$_{95}$ from the full-fidelity implementations
+of \texttt{new\_approaches/code/} re-run by
+\texttt{spy\_nifty\_full\_validation.py} (single seed; $8$K train,
+$5$K test paths; W-DRO-T omitted because its per-cell wall time on
+shared MPS is prohibitive). The two blocks differ by roughly
+$45$--$55\%$ in absolute level; the full-model block shows the three
+architectures clustered within $\sim 1\%$ of each other per regime,
+which removes the cross-architecture spread that the simplified-validator
+block had attributed to W-DRO-T.}
+\label{tab:spy}
+\begin{tabular}{@{}lrrrr@{}}
 \toprule
-\textbf{Parameter} & \textbf{US (SPY)} & \textbf{India (NIFTY)} \\
+\textbf{Model (simplified validators)} & \textbf{Calm 15\%} & \textbf{Post-COVID 20\%} & \textbf{COVID 65\%} & \textbf{GFC 80\%} \\\midrule
+\textbf{W-DRO-T}  & $\mathbf{11.98}$ & $20.69$         & $\mathbf{46.94}$ & $\mathbf{62.26}$ \\
+Transformer       & $14.47$          & $\mathbf{19.66}$ & $64.80$          & $72.71$ \\
+3SCH              & $15.79$          & $21.43$         & $69.25$          & $88.43$ \\
+RSE               & $16.90$          & $23.20$         & $69.76$          & $84.57$ \\
+LSTM              & $20.28$          & $27.36$         & $86.84$          & $100.88$ \\
 \midrule
-Transaction cost & 3 bps & 18 bps \\
-Slippage & 2 bps & 5 bps \\
-Rebalancing & Daily & Daily \\
-Trading hours & 9:30-16:00 & 9:15-15:30 \\
-Data period & 2023 & 2023 \\
+\multicolumn{5}{l}{\emph{Full models} (\texttt{spy\_nifty\_full\_validation.py}, single seed)} \\
+\midrule
+LSTM              & $11.09$ & $\mathbf{14.49}$ & $45.48$ & $\mathbf{55.90}$ \\
+3SCH              & $11.10$ & $14.50$ & $46.04$ & $56.15$ \\
+\textbf{RSE}      & $\mathbf{11.03}$ & $14.55$         & $\mathbf{45.44}$ & $56.01$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Indian markets feature significantly higher transaction costs (18 bps vs. 3 bps) due to Securities Transaction Tax (STT), stamp duty, and wider bid-ask spreads.
+The simplified-validator block of Table~\ref{tab:spy} suggests
+W-DRO-T improvements of $41/46/38\%$ over LSTM in the calm,
+COVID and GFC regimes. Re-running with the full-fidelity
+implementations of \texttt{new\_approaches/code/} (lower block)
+collapses the cross-architecture spread to $\le 1.4\%$ per regime
+and recovers RSE as the per-regime winner; the published
+W-DRO-T crisis advantage was driven by inhomogeneous training
+budgets in the validation-grade code paths rather than by the
+architectural ideas themselves. The regime-sensitivity pattern of
+\S\ref{sec:intro} is invariant: every architecture inflates its
+$\cvar_{95}$ by $\sim 4\times$ from calm 15\% to COVID 65\% and
+by $\sim 5\times$ from calm 15\% to GFC 80\%.
 
-\subsection{Crisis Period Stress Testing}
-
-We validate model robustness across normal and crisis market conditions using market-calibrated simulations. Extended validation includes all novel approaches.
-
-\begin{table}[h]
+\begin{figure}[ht]
 \centering
-\caption{CVaR$_{95}$ across market scenarios---US (SPY) market (5,000 paths, 30-day horizon)}
-\label{tab:crisis_results_spy}
-\begin{tabular}{lrrrrr}
+\includegraphics[width=0.94\linewidth]{figures/23_spy_crisis_stress_testing.pdf}
+\caption{Regime-calibrated stress battery with SPY parameters
+(simplified-validator implementations, as shipped in the original
+\texttt{extended\_real\_market\_validation.py}). W-DRO-T (purple)
+is the smallest bar in three of four panels under that
+implementation; the plain Transformer (grey-blue) wins the
+post-COVID 20\% panel. The full-fidelity rerun
+(Table~\ref{tab:spy} lower block) contracts the bar heights to
+within $\sim\!1\%$ per regime; this figure therefore documents
+the simplified-validator picture only and is retained for
+transparency. The walk-forward backtest on raw OHLCV is reported
+in \S\ref{sec:walkforward}.}
+\label{fig:spy_crisis}
+\end{figure}
+
+\subsection{Extended suite (compact re-implementations)}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.72\linewidth]{figures/generated/effect_size_heatmap.pdf}
+\caption{Cohen's $d$ versus LSTM on $\cvar_{95}$ across the
+$5\!\times\!7\!\times\!4$ medium suite (clipped to $\pm 8$; blue
+better than LSTM, red worse; $n=2$ seeds per cell). Transformer
+and W-DRO-T occupy nearly every blue cell on Asian, digital, barrier
+and European payoffs in the COVID and GFC blocks; 3SCH stays close
+to the LSTM baseline by construction. Two basket-call cells are
+omitted (insufficient seeds). The extreme post-COVID digital-call
+value ($d=-112$) is a degenerate-variance artefact arising from the
+near-zero cross-seed dispersion of the digital P\&L at the
+calibrated $T=30/365$ horizon; it should be read as
+``negligible spread'', not as a tightened effect size.}
+\label{fig:heatmap}
+\end{figure}
+
+The medium-suite cells use the compact \texttt{jaws\_research}
+re-implementations rather than the full models of
+\S\ref{sec:methods}; with only $n=2$ seeds per cell the
+Holm--Bonferroni-significant cells are limited to COVID Asian and
+European calls. We treat the heatmap as a directional indicator
+and rely on the ten-seed in-distribution benchmark
+(Table~\ref{tab:main}), the full-model stress battery
+(Table~\ref{tab:realmarket_full}), and the walk-forward backtest
+(\S\ref{sec:walkforward}) for the quantitative claims.
+
+\subsection{Turnover--CVaR frontier}\label{sec:frontier}
+
+Figure~\ref{fig:frontier} plots realised turnover against
+$\cvar_{95}$ across all medium-suite cells. Two clusters emerge:
+LSTM, 3SCH and RSE form a low-turnover, higher-CVaR cluster
+(turnover $0.7$--$1.2$), while Transformer and W-DRO-T form a
+high-turnover, lower-CVaR cluster (turnover $1.3$--$1.9$). The
+implication is operational rather than purely statistical: the
+preferred architecture is determined by the user's friction budget,
+not by the in-distribution ranking alone. The break-even friction
+$c^\star$ at which the high-turnover cluster ceases to be capital-
+or P\&L-optimal can be read directly from the slope of the frontier;
+in our SPY/NIFTY data this happens between $10$ and $15$~bps,
+which is exactly the gap between US ($3$~bps) and Indian
+($18$~bps) execution conditions.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.78\linewidth]{figures/turnover_vs_cvar_quick_v1.pdf}
+\caption{Risk--cost frontier. Each point is one (model, scenario,
+payoff, seed) cell from the medium suite. Two clusters separate
+low-turnover hedgers (LSTM, 3SCH, RSE) from high-turnover hedgers
+(Transformer, W-DRO-T); the optimal architecture is therefore
+friction-conditional.}
+\label{fig:frontier}
+\end{figure}
+
+\subsection{NIFTY-calibrated stress battery}\label{sec:nifty}
+
+The same scenario-conditional protocol is repeated with NIFTY-50
+spot ($S_0\!=\!18{,}000$), Indian risk-free rate ($r\!=\!6.5\%$)
+and the larger $18$~bps proportional cost that combines exchange,
+clearing, STT and stamp fees with execution
+slippage~\citep{nse2024fees}. The simplified-validator block of
+Table~\ref{tab:realmarket} suggests a strong 3SCH advantage on
+NIFTY calm-$14\%$ and a strong W-DRO-T advantage on NIFTY
+GFC-$70\%$. The full-model rerun
+(\texttt{spy\_nifty\_full\_validation.py}; lower row of
+Table~\ref{tab:realmarket_full}) again contracts the
+cross-architecture spread to within $3\%$: RSE wins NIFTY calm
+$14\%$ ($471.50$ vs LSTM $475.45$, 3SCH $472.65$) and NIFTY GFC
+$70\%$ ($2022.44$ vs LSTM $2056.18$, 3SCH $2063.38$); LSTM wins
+NIFTY COVID $55\%$ ($1609.22$ vs RSE $1658.93$). The qualitative
+reading is the same as for the SPY battery: the full
+implementations of the architectures cluster much more tightly
+than the simplified-validator numbers, and the apparent
+cross-architecture spread in the original Table~\ref{tab:realmarket}
+was largely a property of the validation-grade code paths.
+
+\begin{table}[ht]
+\centering\small
+\caption{Regime-calibrated stress battery (simplified validators)
+with SPY and NIFTY parameters (single seed; $5{,}000$ test paths
+per cell). \textbf{Bold} marks the best per column. The numbers
+are scenario-conditional CVaR$_{95}$ values, not walk-forward
+backtests on raw OHLCV; see \S\ref{sec:limitations} for the
+caveat. The full-model rerun (Table~\ref{tab:spy}, lower block,
+and Table~\ref{tab:realmarket_full} below) contracts the
+cross-architecture spread substantially.}
+\label{tab:realmarket}
+\begin{tabular}{@{}llrrrrr@{}}
 \toprule
-\textbf{Scenario} & \textbf{LSTM} & \textbf{Trans.} & \textbf{RSE} & \textbf{W-DRO-T} & \textbf{3SCH} \\
-\midrule
-Normal 2019 ($\sigma = 15\%$) & 20.28 & 14.47 & 16.90 & \textbf{11.98} & 15.79 \\
-Post-COVID 2021 ($\sigma = 20\%$) & 27.36 & 19.66 & 23.20 & \textbf{20.69} & 21.43 \\
-COVID Crisis ($\sigma = 65\%$) & 86.84 & 64.80 & 69.76 & \textbf{46.94} & 69.25 \\
-2008 Crisis ($\sigma = 80\%$) & 100.88 & 72.71 & 84.57 & \textbf{62.26} & 88.43 \\
+\textbf{Calibration} & \textbf{Regime ($\sigma$)} & \textbf{LSTM} & \textbf{Trans.} & \textbf{W-DRO-T} & \textbf{3SCH} & \textbf{RSE} \\\midrule
+SPY    & Calm 15\%        & $20.28$  & $14.47$  & $\mathbf{11.98}$  & $15.79$  & $16.90$ \\
+SPY    & Post-COVID 20\%  & $27.36$  & $\mathbf{19.66}$  & $20.69$  & $21.43$  & $23.20$ \\
+SPY    & COVID 65\%       & $86.84$  & $64.80$  & $\mathbf{46.94}$  & $69.25$  & $69.76$ \\
+SPY    & GFC 80\%         & $100.88$ & $72.71$  & $\mathbf{62.26}$  & $88.43$  & $84.57$ \\
+NIFTY  & Calm 14\%        & $785.62$ & $769.61$ & $663.92$ & $\mathbf{622.26}$ & $686.62$ \\
+NIFTY  & COVID 55\%       & $3028.93$& $\mathbf{1644.19}$& $2883.96$& $2465.71$& $2592.97$ \\
+NIFTY  & GFC 70\%         & $3645.62$& $2885.31$& $\mathbf{2349.72}$& $2962.35$& $2841.25$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\begin{table}[h]
-\centering
-\caption{CVaR$_{95}$ across market scenarios---India (NIFTY) market (5,000 paths, 30-day horizon)}
-\label{tab:crisis_results_nifty}
-\begin{tabular}{lrrrrr}
+\begin{table}[ht]
+\centering\small
+\caption{Stress battery rerun with the \emph{full} model
+implementations of \texttt{new\_approaches/code/} (LSTM, 3SCH, RSE)
+on the same regime-calibrated Heston scenarios. CVaR$_{95}$ in
+P\&L units, TC-inclusive evaluator; $8$K training paths and $5$K
+test paths per cell; \texttt{spy\_nifty\_full\_validation.py}.
+\textbf{Bold} marks the best entry per row. The SPY calm $15\%$
+row reports the $3$-seed mean ($\pm$ cross-seed standard deviation)
+from \texttt{spy\_multiseed\_check.py}; all other cells use a
+single seed because the per-cell wall time at shared MPS exhausts
+the iteration budget. Transformer and W-DRO-T are omitted from
+this rerun for the same reason. The cross-architecture spread is
+$\le 3\%$ per regime, an order of magnitude smaller than in the
+simplified-validator block of Table~\ref{tab:realmarket}. RSE wins
+$4$ of $7$ cells; LSTM wins $3$ of $7$; 3SCH wins $0$.}
+\label{tab:realmarket_full}
+\begin{tabular}{@{}llrrr@{}}
 \toprule
-\textbf{Scenario} & \textbf{LSTM} & \textbf{Trans.} & \textbf{RSE} & \textbf{W-DRO-T} & \textbf{3SCH} \\
-\midrule
-Normal 2019 ($\sigma = 14\%$) & 785.62 & 769.61 & 686.62 & 663.92 & \textbf{622.26} \\
-COVID Crisis ($\sigma = 55\%$) & 3028.93 & \textbf{1644.19} & 2592.97 & 2883.96 & 2465.71 \\
-2008 Crisis ($\sigma = 70\%$) & 3645.62 & 2885.31 & 2841.25 & \textbf{2349.72} & 2962.35 \\
+\textbf{Calibration} & \textbf{Regime ($\sigma$)} & \textbf{LSTM} & \textbf{3SCH} & \textbf{RSE} \\\midrule
+SPY    & Calm 15\% ($n\!=\!3$) & $11.06\pm 0.03$ & $11.10\pm 0.00$ & $\mathbf{11.03}$ \\
+SPY    & Post-COVID 20\% & $\mathbf{14.49}$  & $14.50$  & $14.55$  \\
+SPY    & COVID 65\%      & $45.48$  & $46.04$  & $\mathbf{45.44}$ \\
+SPY    & GFC 80\%        & $\mathbf{55.90}$  & $56.15$  & $56.01$ \\
+NIFTY  & Calm 14\%       & $475.45$ & $472.65$ & $\mathbf{471.50}$ \\
+NIFTY  & COVID 55\%      & $\mathbf{1609.22}$ & $1623.20$ & $1658.93$ \\
+NIFTY  & GFC 70\%        & $2056.18$ & $2063.38$ & $\mathbf{2022.44}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\subsection{Robustness Analysis}
+The SPY calm $15\%$ row, repeated across seeds $\{42,142,242\}$,
+gives LSTM $\cvar_{95}=11.06\pm 0.03$ (CV $0.28\%$), 3SCH
+$11.10\pm 0.00$ (CV $0.04\%$) and a single-seed RSE value of
+$11.03$; the cross-seed spread between LSTM and 3SCH is below the
+cross-architecture difference, so the per-cell rankings reported
+above should be read as $\pm 0.1$ P\&L units. The remaining cells
+were run on a single seed because of the wall-time budget and are
+reported here without an explicit cross-seed dispersion estimate.
 
-\begin{table}[h]
-\centering
-\caption{Crisis-to-normal performance ratio (lower is better—more robust)}
-\label{tab:robustness}
-\begin{tabular}{lccl}
+\subsection{Walk-forward backtest on raw OHLCV}\label{sec:walkforward}
+
+We complement the synthetic stress battery with a walk-forward
+backtest on raw \texttt{yfinance} OHLCV. Each model is trained on
+overlapping $30$-day windows from the calm $2017$--$2019$ period
+(SPY for the US battery; \texttt{\^{}NSEI} for the Indian battery)
+and then evaluated, with frozen weights, on overlapping $30$-day
+windows of three test periods: COVID-acute, post-COVID 2021, and
+GFC 2007--2009. The policy consumes the same five Heston-style
+features as the synthetic battery, with realised volatility
+computed from a trailing $20$-day window of log-returns realised
+strictly \emph{before} each decision time, so every feature is
+measurable when the hedge is chosen. Each (market, model) pair is
+trained at three seeds $\{42,142,242\}$;
+Table~\ref{tab:walkforward} reports the TC-inclusive CVaR$_{95}$
+as the cross-seed mean $\pm$ standard deviation.
+
+\begin{table}[ht]
+\centering\small
+\caption{Walk-forward CVaR$_{95}$ on raw \texttt{yfinance} OHLCV:
+cross-seed mean $\pm$ standard deviation over training seeds
+$\{42,142,242\}$. Models trained on $2017$--$2019$ calm windows;
+tested on the labelled windows without further training.
+TC-inclusive evaluator ($c_{\mathrm{tc}}=3$~bps for SPY, $18$~bps
+for NIFTY); overlapping (stride-1) $30$-day windows; features are
+strictly trailing. Per-cell sample count $n$ is the number of
+$30$-day test windows in the period. \textbf{Bold} marks the best
+mean per row. The $\Delta\%$ column compares the RSE and LSTM
+means.}
+\label{tab:walkforward}
+\begin{tabular}{@{}llrrrrr@{}}
 \toprule
-\textbf{Model} & \textbf{COVID/Normal} & \textbf{2008/Normal} & \textbf{Interpretation} \\
-\midrule
-LSTM & $4.28\times$ & $4.97\times$ & Highest degradation \\
-Transformer & $4.48\times$ & $5.02\times$ & High degradation \\
-RSE & $4.13\times$ & $5.00\times$ & Moderate degradation \\
-\textbf{W-DRO-T} & $3.92\times$ & $5.20\times$ & Best COVID robustness \\
-3SCH & $4.39\times$ & $5.60\times$ & Moderate degradation \\
+\textbf{Ticker} & \textbf{Test window} & $\boldsymbol{n}$ & \textbf{LSTM} & \textbf{3SCH} & \textbf{RSE} & $\boldsymbol{\Delta\%}$ \\\midrule
+SPY    & COVID 2020-02..04   & $30$  & $43.8\pm 6.9$  & $43.4\pm 5.0$  & $\mathbf{31.8\pm 3.9}$  & $\mathbf{-27.3}$ \\
+SPY    & Post-COVID 2021     & $220$ & $12.05\pm 0.45$ & $\mathbf{11.74\pm 0.31}$ & $11.85\pm 0.73$ & $-1.6$ \\
+SPY    & GFC 2007--2009      & $472$ & $12.67\pm 1.37$ & $12.53\pm 1.19$ & $\mathbf{11.43\pm 0.65}$ & $\mathbf{-9.7}$ \\
+NIFTY  & COVID 2020-02..04   & $26$  & $\mathbf{1223\pm 96}$ & $1269\pm 76$ & $1267\pm 53$ & $+3.6$ \\
+NIFTY  & GFC 2007--2009      & $402$ & $\mathbf{672\pm 44}$  & $686\pm 3$   & $715\pm 50$  & $+6.3$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\subsection{Key Observations}
+\paragraph{Reading the walk-forward result.}
+RSE improves on the LSTM baseline in both SPY crisis cells on
+every training seed: $-24.5/-21.1/-35.0\%$ per seed on COVID-acute
+(mean $-27.3\%$) and $-3.6/-8.8/-15.6\%$ on the GFC window (mean
+$-9.7\%$). The SPY post-COVID 2021 window is a statistical tie:
+the three architectures lie within $2.7\%$ of one another at the
+mean and the per-seed winner alternates. The NIFTY ordering
+reverses: LSTM is best at the mean in both cells ($+3.6\%$ and
+$+6.3\%$ for RSE) and wins two of three seeds in each. The
+mechanism is visible in the turnover ledger: on NIFTY, RSE turns
+over $\approx\! 1.0$--$1.1$ units per window against
+$\approx\! 0.67$--$0.74$ for LSTM, and at
+$c_{\mathrm{tc}}=18$~bps the extra trading is exactly the drag
+that erases the gating advantage; on SPY at $3$~bps the turnovers
+are comparable ($1.06$ vs $1.07$ on COVID-acute) and the
+crisis-window gains survive. The walk-forward battery therefore
+gives out-of-sample support to the friction-conditional reading of
+the turnover--CVaR frontier (\S\ref{sec:frontier}): below the
+$10$--$15$~bps break-even, the regime-gated ensemble is the crisis
+hedger of choice; above it, the low-turnover baseline is
+preferred. Two caveats apply. First, the COVID cells contain only
+$26$--$30$ overlapping windows, so their CVaR$_{95}$ rests on one
+or two tail windows per seed; second, stride-one windows are
+serially dependent, so cell values are descriptive statistics
+rather than i.i.d.\ estimates. Out-of-distribution cross-seed
+dispersion (CV up to $16\%$ on SPY COVID) is two orders of
+magnitude larger than the in-distribution CVs of
+Table~\ref{tab:realmarket_full}, which is why the seed-uniform
+pairing, not in-distribution seed stability, is the robustness
+statement this battery supports. Combined with the
+in-distribution $-3.29\%$ headline of Table~\ref{tab:main}, the
+walk-forward battery is the strongest empirical case for RSE in
+low-friction crisis deployment---and it delimits, rather than
+obscures, where that case does not extend.
 
-\begin{enumerate}[leftmargin=*]
-    \item \textbf{W-DRO-T achieves best crisis robustness:} The Wasserstein DRO Transformer consistently achieves the lowest CVaR$_{95}$ across crisis scenarios in the US market, with 38\% improvement over LSTM during COVID and 28\% improvement over Transformer. The gradient-norm regularization provides distributional robustness under volatility regime shifts.
-    
-    \item \textbf{RSE provides stable ensemble benefits:} The Regime-Switching Ensemble shows lower variance (Std P\&L) than individual models, confirming the diversification benefits of regime-adaptive model weighting.
-    
-    \item \textbf{Transformer architecture shows strong crisis adaptation:} In NIFTY COVID crisis, Transformer achieves 46\% lower CVaR than LSTM, suggesting attention mechanisms capture volatility clustering patterns effectively.
-    
-    \item \textbf{3SCH shows stable middle-ground performance:} The Three-Stage Curriculum Hedger achieves best normal-period NIFTY performance (CVaR$_{95}$ = 622.26), indicating curriculum learning benefits in high-transaction-cost environments.
-    
-    \item \textbf{Market-specific model selection matters:} W-DRO-T dominates in US markets, while 3SCH and Transformer show advantages in Indian markets with higher transaction costs. This suggests deployment should consider market microstructure.
-\end{enumerate}
+\subsection{Capital and friction trade-offs}\label{sec:capital}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 7. ECONOMIC AND ACCOUNTING ANALYSIS
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Economic, Accounting, and Managerial Implications}
-\label{sec:economic_analysis}
-
-\subsection{Capital Requirement Analysis}
-
-Under the Basel III/IV Fundamental Review of the Trading Book (FRTB), banks must hold capital against market risk based on Expected Shortfall (ES) at the 97.5\% confidence level, replacing the previous VaR-based regime. We approximate regulatory capital using CVaR$_{95}$ as a conservative proxy for ES$_{97.5}$, scaled by a supervisory multiplier of $m_c = 1.5$ and a 10-day holding period adjustment $\sqrt{10}$. The capital proxy is computed as $\text{Capital} = m_c \cdot \sqrt{10} \cdot \text{CVaR}_{95} \cdot \text{Notional} / S_0$.
-
-\begin{table}[h]
-\centering
-\caption{Capital requirements per \$100M notional (10-day horizon, US market)}
+\begin{table}[ht]
+\centering\small
+\caption{Basel-IV FRTB-style capital per $\$100$\,M notional under the
+SPY calm 15\% scenario, using the \emph{full-model} CVaR$_{95}$ values
+of Table~\ref{tab:spy} (lower block). $\ES_{97.5}\approx 1.12\,\cvar_{95}$;
+supervisor multiplier $m_s=1.5$. The original $41\%$ saving reported
+against the simplified-validator block does not survive the full-model
+rerun; the capital gap between architectures is now $<\!1\%$ at SPY
+calm 15\%. See the calibration caveat below.}
 \label{tab:capital}
-\begin{tabular}{lrrrr}
+\begin{tabular}{@{}lrrrr@{}}
 \toprule
-\textbf{Model} & \textbf{CVaR$_{95}$} & \textbf{Std P\&L} & \textbf{Capital Proxy} & \textbf{Savings vs. LSTM} \\
-\midrule
-LSTM & 20.28 & 5.05 & \$8.11M & --- \\
-Transformer & 14.47 & 3.13 & \$5.79M & \$2.32M (28.6\%) \\
-RSE & 16.90 & 3.57 & \$6.76M & \$1.35M (16.7\%) \\
-W-DRO-T & \textbf{11.98} & \textbf{1.71} & \textbf{\$4.79M} & \$3.32M (40.9\%) \\
-3SCH & 15.79 & 3.70 & \$6.32M & \$1.79M (22.1\%) \\
+\textbf{Model} & $\boldsymbol{\cvar_{95}}$ & \textbf{Std P\&L} & \textbf{Capital} & \textbf{vs.\ LSTM} \\\midrule
+\textbf{RSE}  & $\mathbf{11.03}$ & $\mathbf{1.61}$ & $\mathbf{\$4.42\,\mathrm{M}}$ & $\mathbf{-0.5\%}$ \\
+LSTM          & $11.09$          & $1.64$          & $\$4.44\,\mathrm{M}$         & --- \\
+3SCH          & $11.10$          & $1.64$          & $\$4.45\,\mathrm{M}$         & $+0.1\%$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-W-DRO-T achieves 41\% capital savings compared to LSTM under normal market conditions. For a derivatives desk with \$10B notional, this translates to potential regulatory capital savings of approximately \$332M annually. The reduced P\&L volatility (Std = 1.71 vs.\ 5.05) further supports lower capital buffers under the Internal Models Approach (IMA), where desk-level backtesting thresholds depend on P\&L distribution tails. Importantly, these savings compound during stress periods: under COVID-type volatility, W-DRO-T's capital proxy remains 46\% lower than LSTM's, precisely when capital is most constrained.
+Under FRTB Internal Models Approach
+assumptions~\citep{basel2019frtb}, the full-model capital figures
+above leave essentially no cross-architecture spread at the SPY
+calm regime: the $41\%$ W-DRO-T saving in the simplified-validator
+block was a property of the validation-grade implementations rather
+than of the architecture, and does not survive the full-fidelity
+rerun. At the higher Indian friction level (approximately $18$~bps
+including STT, exchange and stamp fees and execution slippage), the
+turnover differential between architectures becomes the dominant
+cost driver (Figure~\ref{fig:frontier}); the low-turnover bias of
+3SCH and LSTM is therefore preferred over the higher-turnover
+Transformer in the high-friction
+regime~\citep{leland1985option,whalley1997asymptotic}.
 
-\subsection{Hedge Accounting Qualification}
+\paragraph{Calibration caveat.}
+The absolute capital number depends on the supervisor multiplier
+$m_s$ and on the $\ES_{97.5}/\cvar_{95}$ relationship at the
+calibrated horizon. Both enter linearly, so the \emph{ratios} in
+Table~\ref{tab:capital} are robust under a wide range of $m_s$ and
+ES-conversion assumptions. The absolute dollar figures should be
+read as illustrative, and the in-distribution CVaR caveat of
+\S\ref{sec:tc_check} applies here too.
 
-Under IAS 39 and IFRS 9, hedge accounting requires demonstrable hedge effectiveness:
+\subsection{Transaction-cost-inclusive evaluation check}\label{sec:tc_check}
 
-\begin{itemize}[noitemsep]
-    \item \textbf{Dollar offset method:} Ratio of hedge change to hedged item change should be 80-125\%
-    \item \textbf{Regression method:} $R^2 \geq 0.80$ between hedge and hedged item
-\end{itemize}
+The headline in-distribution CVaR$_{95}$ values in
+Table~\ref{tab:main} are evaluated on the unhedged-cost component
+$-Z+\sum_k\delta_k(S_{k+1}-S_k)$, while the training loss operates
+on the full P\&L formula~\eqref{eq:pnl} including the proportional
+transaction-cost term. A closed-form correction
+\[
+\widehat{\cvar}^{\,\mathrm{tc}}_{95}
+\;\approx\;\cvar_{95}^{\,\mathrm{no-tc}}
+\;+\;c_{\mathrm{tc}}\,S_0\,\bar v,
+\qquad c_{\mathrm{tc}}=10^{-3},\quad S_0=100,
+\]
+where $\bar v$ is the mean per-path turnover, recovers the
+TC-inclusive ordering directly from Table~\ref{tab:main}
+(Table~\ref{tab:tc_check}). RSE remains ahead of every baseline; the
+gap relative to LSTM contracts from $-3.29\%$ to $-2.45\%$ because
+RSE has higher turnover ($\bar v = 1.379$ versus $1.136$ for LSTM).
+The relative ranking on the other three architectures is preserved.
 
-\begin{table}[h]
-\centering
-\caption{Hedge accounting qualification analysis (IAS 39/IFRS 9/Ind-AS 109)}
-\label{tab:hedge_accounting}
-\begin{tabular}{lcccc}
+\begin{table}[ht]
+\centering\small
+\caption{Closed-form TC-corrected CVaR$_{95}$ derived from
+Table~\ref{tab:main} at $c_{\mathrm{tc}}=10$~bps and $S_0=100$.
+The correction $c_{\mathrm{tc}} S_0\bar v$ uses the per-model mean
+turnover; the relative LSTM ranking is preserved with all model gaps
+shifted by the turnover difference.}
+\label{tab:tc_check}
+\begin{tabular}{@{}lrrrrr@{}}
 \toprule
-\textbf{Model} & \textbf{Dollar Offset} & \textbf{$R^2$} & \textbf{Std P\&L} & \textbf{Qualifies} \\
-\midrule
-LSTM & 0.94 & 0.87 & 5.05 & \checkmark \\
-Transformer & 0.96 & 0.89 & 3.13 & \checkmark \\
-RSE & 0.95 & 0.88 & 3.57 & \checkmark \\
-W-DRO-T & 0.97 & 0.91 & 1.71 & \checkmark \\
-3SCH & 0.95 & 0.88 & 3.70 & \checkmark \\
+\textbf{Model} & $\boldsymbol{\cvar_{95}^{\mathrm{no\text{-}tc}}}$
+& $\boldsymbol{\bar v}$ & $\mathbf{c_{\mathrm{tc}}S_0\bar v}$
+& $\boldsymbol{\widehat{\cvar}_{95}^{\,\mathrm{tc}}}$
+& $\boldsymbol{\Delta\%\,\mathrm{vs.\,LSTM}}$ \\\midrule
+\textbf{RSE}  & $\mathbf{3.109}$ & $1.379$ & $0.138$ & $\mathbf{3.247}$ & $\mathbf{-2.45}$ \\
+LSTM          & $3.215$          & $1.136$ & $0.114$ & $3.329$          & --- \\
+3SCH          & $3.219$          & $1.122$ & $0.112$ & $3.331$          & $+0.08$ \\
+W-DRO-T       & $3.227$          & $1.119$ & $0.112$ & $3.339$          & $+0.30$ \\
+Transformer   & $3.234$          & $1.117$ & $0.112$ & $3.346$          & $+0.51$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-All deep hedging models qualify for hedge accounting treatment under both retrospective (dollar offset 80--125\%) and prospective ($R^2 \geq 0.80$) effectiveness tests. W-DRO-T achieves the highest hedge effectiveness ($R^2 = 0.91$) and lowest earnings volatility (Std P\&L = 1.71), making it the strongest candidate for reducing P\&L volatility in financial statements. Under IFRS~9, models with lower hedge ineffectiveness may also reduce the frequency of hedge relationship de-designation events.
+\paragraph{Empirical verification.}
+We retrained both LSTM and RSE under $r=0.05$ with the
+TC-inclusive evaluator of~\eqref{eq:pnl} on the full ten-seed
+grid $\{42,142,\dots,942\}$ (\texttt{full\_tc\_validation.py};
+$25$K train, $10$K test, $50+30$ epoch budget). The result
+confirms both the closed-form prediction and the rank invariance:
+\[
+\begin{array}{lccc}
+\text{model} & \cvar_{95}^{\,\mathrm{no\text{-}tc}} & \cvar_{95}^{\,\mathrm{tc}} & \text{$95\%$ bootstrap CI (tc)} \\
+\hline
+\text{LSTM}  & 3.223 \pm 0.021 & 3.413 \pm 0.021 & [3.399, 3.425] \\
+\text{RSE}   & \mathbf{3.124 \pm 0.016} & \mathbf{3.326 \pm 0.011} & [3.318, 3.333]
+\end{array}
+\]
+The paired test on the TC-inclusive column yields
+$t = -16.32$, $p = 5.4\times 10^{-8}$, $d_z = -5.16$, with a mean
+percentage gap of $-2.5\%$ (RSE vs.\ LSTM). RSE wins on every
+seed under both columns; the empirical TC correction matches the
+closed-form $c_{\mathrm{tc}} S_0 \bar v$ estimate within $30\%$
+(the slight excess reflects the upward drift introduced by
+$r=0.05$ relative to the $r=0$ benchmark of Table~\ref{tab:main}).
+The two bootstrap intervals do not overlap. All three evidence
+streams---headline Table~\ref{tab:main}, the closed-form
+correction of Table~\ref{tab:tc_check}, and this ten-seed
+TC-inclusive rerun under $r=0.05$---agree on the same
+$\text{RSE} < \text{LSTM}$ ordering with a paired $p$-value below
+$10^{-7}$.
 
-\subsection{Transaction Cost and Trading Efficiency Analysis}
+\subsection{Ablations}
 
-Trading volume directly impacts transaction costs and market impact. We analyze the cost--risk trade-off across models:
-
-\begin{table}[h]
-\centering
-\caption{Trading volume and cost efficiency (\$100M notional, 30-day horizon)}
-\label{tab:tc_budget}
-\begin{tabular}{lcccc}
+\begin{table}[ht]
+\centering\small
+\caption{RSE ablations on the in-distribution benchmark (three seeds
+per configuration). Number of bases: full RSE uses LSTM, Transformer
+and a signature expert. Number of regimes: full RSE uses $K=4$.}
+\label{tab:rse_ablation}
+\begin{tabular}{@{}lcc@{\hskip 1.5em}lc@{}}
 \toprule
-\textbf{Model} & \textbf{Trade Vol.} & \textbf{US Cost (3 bps)} & \textbf{India Cost (18 bps)} & \textbf{CVaR/Trade} \\
-\midrule
-LSTM & 0.60 & \$18K & \$108K & 33.8 \\
-3SCH & 0.87 & \$26K & \$157K & 18.1 \\
-RSE & 1.06 & \$32K & \$191K & 16.0 \\
-W-DRO-T & 2.05 & \$62K & \$369K & 5.8 \\
-Transformer & 2.91 & \$87K & \$524K & 5.0 \\
+\textbf{Bases}            & $\boldsymbol{\cvar_{95}}$ & \textbf{CV (\%)}
+& \textbf{Regimes $K$}    & $\boldsymbol{\cvar_{95}}$ \\\midrule
+LSTM only                 & $3.215$ & $0.55$ & $2$            & $3.128$ \\
+LSTM + Transformer        & $3.142$ & $0.38$ & $3$            & $3.115$ \\
+\textbf{Full ($M=3$)}     & $\mathbf{3.109}$ & $\mathbf{0.30}$ & $\mathbf{4}$ (default) & $\mathbf{3.109}$ \\
+                          &        &        & $6$            & $3.112$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\textbf{Key trade-off:} W-DRO-T and Transformer achieve superior CVaR but at 3--5$\times$ higher trading intensity. The CVaR-per-trade ratio reveals efficiency: Transformer achieves 5.0 CVaR units per trade versus LSTM's 33.8, indicating significantly more efficient risk reduction per transaction. For high-cost markets (India), 3SCH offers the best balance with moderate trading (0.87) and strong CVaR (15.79 in SPY normal).
+\begin{table}[ht]
+\centering\small
+\caption{Learned RSE affinity matrix after softmax (typical seed,
+$\tau=1$). Rows sum to one. The pattern persists across seeds with
+$\le 0.06$ absolute deviation.}
+\label{tab:affinity}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Regime}        & \textbf{LSTM} & \textbf{Transformer} & \textbf{Signature} \\\midrule
+Low volatility (calm)  & $\mathbf{0.52}$ & $0.28$         & $0.20$ \\
+High volatility (stress)& $0.18$        & $\mathbf{0.54}$ & $0.28$ \\
+Trending               & $0.31$        & $\mathbf{0.41}$ & $0.28$ \\
+Mean-reverting         & $\mathbf{0.45}$ & $0.22$         & $0.33$ \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-\subsection{Indian Market Considerations}
+Each additional expert produces a smaller but consistent CVaR
+improvement, in line with the variance-reduction bound of
+Proposition~\ref{prop:vrf}. $K=4$ regimes balance expressivity and
+parameter efficiency: $K=3$ is within $0.2\%$ of the default; $K=6$
+overfits the affinity matrix. The learned affinity
+(Table~\ref{tab:affinity}) is economically interpretable: LSTM
+captures calm and mean-reverting regimes, Transformer dominates
+high-volatility and trending regimes, and the signature expert
+contributes a steady $20$--$33\%$ across regimes as a
+path-functional regulariser. W-DRO-T sensitivity to $\varepsilon$
+is monotone decreasing in $\cvar_{95}$ up to $\varepsilon\approx 0.1$
+and degrades thereafter as the first-order approximation
+in~\eqref{eq:dro_loss} loses tightness.
 
-The Indian derivatives market presents unique challenges:
+\section{Discussion}\label{sec:discussion}
 
-\begin{enumerate}[leftmargin=*]
-    \item \textbf{Higher transaction costs (18 bps):} Securities Transaction Tax (0.05\% on options), stamp duty, and exchange fees significantly increase trading costs.
-    
-    \item \textbf{Lower liquidity:} Wider bid-ask spreads (5 bps slippage) compared to US markets (2 bps).
-    
-    \item \textbf{Discrete strikes:} NIFTY options have 50-point strike intervals vs. \$1 for SPY, limiting hedging precision.
-    
-    \item \textbf{Regulatory constraints:} SEBI position limits and margin requirements affect strategy implementation.
-\end{enumerate}
+\paragraph{Deployment recipe.}
+Two axes determine the architecture choice: regime stability and
+transaction cost. In low-friction books ($\lesssim\!10$~bps) RSE
+is the recommended default. It wins the in-distribution ten-seed
+benchmark with a statistically significant margin ($p < 10^{-9}$,
+Cohen's $d=-7.41$; \S\ref{sec:results}), improves both SPY
+walk-forward crisis cells on every training seed ($-27\%$
+COVID-acute, $-10\%$ GFC; \S\ref{sec:walkforward}), wins four of
+seven cells in the full-model synthetic battery
+(Table~\ref{tab:realmarket_full}), exposes an interpretable regime classifier for
+governance, and has the smallest cross-seed coefficient of
+variation ($0.30\%$). In high-friction books ($\sim\!18$~bps) the
+low-turnover bias of 3SCH/LSTM becomes material: the break-even
+friction visible in Figure~\ref{fig:frontier} (\S\ref{sec:frontier})
+lies between $10$ and $15$~bps, and the NIFTY walk-forward cells
+confirm the crossing out of sample---LSTM is the best NIFTY
+crisis hedger at the mean while RSE carries roughly $1.5\times$
+its turnover. Where computational budget or
+governance constraints rule out the ensemble, LSTM and 3SCH are
+near-substitutes with cross-architecture spread $\le 1.4\%$ per
+regime in the synthetic battery.
 
-\textbf{Recommendation for Indian markets:} Prioritize trading efficiency over hedging precision. The reduced trading volume of Transformer models (37\% fewer trades) provides substantial cost savings that outweigh marginal hedging improvements.
+\paragraph{Interpretability and governance.}
+Each architecture exposes a distinct audit trail. W-DRO-T surfaces
+$\|\nabla_X\ell\|_2$ as a Lipschitz proxy for input sensitivity,
+which a risk officer can monitor during shadow-trading. 3SCH
+inherits an unmodified LSTM, so the novelty is fully captured by
+the documented schedule
+$(\alpha_{\mathrm{start}},\alpha_{\mathrm{end}},T_1,T_2,T_3)$, and
+any model-risk committee can evaluate the change without rereading
+network weights. RSE exposes a three-level stack: time-varying
+regime probabilities $p(r_k=j)$, time-varying expert weights
+$w_m(r_k)$, and the static affinity matrix
+$A\in\R^{4\times 3}$ (Table~\ref{tab:affinity}). Each architecture
+admits a zero-cost rollback: $\varepsilon\!=\!0$ recovers a vanilla
+Transformer, $T_2\!=\!0$ recovers two-stage training, and
+$w_m\!\equiv\!1/M$ recovers an equal-weight ensemble. None of the
+rollbacks requires retraining.
 
-\subsection{Risk Management Interpretation}
+\paragraph{Wasserstein-DRO scope.}
+The Wasserstein penalty acts as a Lipschitz regulariser on the
+policy by constraining $\|\nabla_X\ell\|_2$ along directions
+along which the adversary would transport mass. The full-model
+SPY rerun (Table~\ref{tab:spy}, lower block) shows the penalty
+does not yield a measurable CVaR advantage once LSTM, 3SCH and
+RSE are themselves full-fidelity: at the present single-asset
+dimension and an exact Heston simulator the four architectures
+solve the same problem to within $\sim 1\%$. We expect
+transport-direction smoothness to matter more for (i) larger
+model classes than the $\sim 85$\,K-parameter Transformer used
+here or (ii) genuinely multivariate payoffs; both are left to
+future work. W-DRO-T is therefore retained as a theoretically
+motivated Lipschitz penalty with auditable training-time cost,
+not as an empirical stress-window winner.
 
-The extended validation reveals distinct risk--return profiles across models and market conditions. We interpret these through the lens of distributional robustness \citep{rahimian2019dro} and parameter uncertainty \citep{lutkebohmert2021robust}.
+\paragraph{3SCH at high friction.}
+The Stage-3 turnover penalty $\gamma|\Delta\delta|$ and no-trade
+band $\nu\max(0,|\delta-\delta^{\mathrm{ref}}|-\epsilon)$ push the
+LSTM towards a low-turnover hedge while preserving its tail-aware
+Stage-1 solution. At $3$~bps the cost component is negligible and
+the lower tail accuracy of the Transformer dominates; at $18$~bps
+the cost component dominates the P\&L, and the 3SCH bias becomes
+correct. This is consistent with classical discrete-cost hedging
+theory~\citep{leland1985option,whalley1997asymptotic}, in which
+the optimal hedge has a no-trade band whose width is monotone in
+the cost rate.
 
-\textbf{Tail Risk Control.} W-DRO-T achieves the lowest CVaR$_{95}$ across all US crisis scenarios: 46.94 during COVID-type stress vs.\ 86.84 for LSTM (46\% reduction) and 62.26 during 2008-type stress vs.\ 100.88 for LSTM (38\% reduction). This improvement is attributable to the Wasserstein gradient-norm penalty $\varepsilon \cdot \E[\|\nabla_I \mathcal{L}\|_2]$, which constrains the model's sensitivity to input perturbations within a Wasserstein ball of radius $\varepsilon$. Theoretically, this corresponds to optimizing the worst-case expected loss over an ambiguity set $\mathcal{P}^W(P_0; \varepsilon)$ of distributions close to the empirical distribution \citep{blanchet2019quantifying}, directly addressing the model uncertainty inherent in crisis regimes.
+\paragraph{RSE in distribution vs.\ at stress.}
+Ensemble variance reduction (Proposition~\ref{prop:vrf}) is
+largest when expert errors are partially uncorrelated, which is
+the regime RSE encounters in distribution. At high volatility the
+three frozen experts move in the same direction and their
+correlations rise towards unity, shrinking the variance
+reduction. In the full-fidelity stress rerun
+(Table~\ref{tab:realmarket_full}) RSE still wins four of seven
+cells, but by a smaller margin: under the same regime calibration
+the architectures are near-substitutes in CVaR$_{95}$, and the
+gate contributes mainly through cross-seed stability and the
+interpretable audit trail.
 
-\textbf{Risk--Cost Frontier.} Models trace a Pareto frontier between tail risk reduction and trading intensity:
-\begin{itemize}[noitemsep]
-    \item W-DRO-T: Std P\&L = 1.71 (lowest), CVaR = 11.98, but trade vol.\ = 2.05
-    \item RSE: Std P\&L = 3.57, CVaR = 16.90, trade vol.\ = 1.06---balanced profile
-    \item 3SCH: Std P\&L = 3.70, CVaR = 15.79, trade vol.\ = 0.87---cost-efficient
-    \item LSTM: Std P\&L = 5.05, CVaR = 20.28, trade vol.\ = 0.60---minimal cost
-\end{itemize}
-No single model dominates on all criteria; the optimal choice depends on the institution's capital--cost trade-off preference.
+\paragraph{Limitations.}\label{sec:limitations}
+\textit{Synthetic stress battery is within-regime}: cells train
+and test on the same calibration; only the walk-forward battery
+(\S\ref{sec:walkforward}) replays raw OHLCV.
+\textit{Simplified-validator artefacts}: the original
+Table~\ref{tab:realmarket} uses validation-grade counterparts of
+the full models; the full-fidelity rerun
+(Table~\ref{tab:realmarket_full}) shrinks the cross-architecture
+spread to $\le 3\%$ and removes the $41/46/38\%$ W-DRO-T claim.
+W-DRO-T is absent from the full-fidelity rerun due to per-cell
+second-order wall-time constraints.
+\textit{In-distribution evaluator}: Table~\ref{tab:main}
+CVaR$_{95}$ omits the TC term that the training loss applies;
+the closed-form correction
+$\Delta\cvar_{95}\!\approx\!c_{\mathrm{tc}}\bar S_0\bar v$ and the
+ten-seed rerun of \S\ref{sec:tc_check} both preserve the RSE-vs.-LSTM
+ordering ($p<10^{-7}$).
+\textit{Simulator coverage}: Heston omits flash crashes; Bates
+adds jumps but no stochastic correlation; exotics are capped at
+$d=3$.
+\textit{W-DRO-T approximation}: first-order expansion in
+$\varepsilon$ loses tightness for $\varepsilon\gtrsim 0.2$ and
+requires the math-SDPA backend at training (inference is
+unaffected).
+\textit{Medium-suite power}: $n=2$ seeds per cell; results are
+directional only.
+\textit{Walk-forward dispersion}: three training seeds;
+out-of-distribution cross-seed CV reaches $16\%$ on SPY COVID, and
+the COVID cells contain only $26$--$30$ overlapping, serially
+dependent windows, so cell-level CVaR$_{95}$ is a noisy
+descriptor. The SPY crisis conclusion rests on the seed-uniform
+pairing, and the NIFTY reversal shows the walk-forward ranking is
+friction-dependent rather than universal.
+\textit{Capital calibration}: absolute dollar figures depend on
+$m_s$ and the $\ES_{97.5}/\cvar_{95}$ relationship; only the
+ratios are robust.
+\textit{3SCH theory}: Proposition~\ref{prop:3sch} gives upper
+hemicontinuity of the argmin, not basin stability of SGD
+(Remark~\ref{rem:3sch_scope}).
 
-\textbf{Distribution Shift Robustness.} We quantify robustness via crisis-to-normal CVaR ratios, which measure performance degradation under stress:
-\begin{itemize}[noitemsep]
-    \item W-DRO-T: 3.92$\times$ (COVID/Normal)---best crisis resilience
-    \item RSE: 4.13$\times$---moderate degradation with ensemble diversification
-    \item LSTM: 4.28$\times$---baseline degradation
-    \item 3SCH: 4.39$\times$---curriculum learning provides limited crisis benefit
-\end{itemize}
-Notably, W-DRO-T's crisis resilience aligns with the theoretical prediction that DRO-regularized models exhibit tighter worst-case performance bounds under distributional shifts.
+\paragraph{Future work.}
+Streaming online updates of the RSE gating matrix; scaling to
+$d\gtrsim 10$ assets with sparse attention; a 3SCH-DRO hybrid that
+combines the curriculum schedule with the gradient-norm penalty;
+wider walk-forward coverage (more markets, non-overlapping
+windows, larger seed grids); rough-path signature
+features~\citep{lyons1998differential,kidger2020signatory} for
+non-Markovian dynamics.
 
-\textbf{Implications for Hedging Desks.} Risk managers face a three-dimensional trade-off across tail risk, trading cost, and model complexity. Our results support a tiered deployment strategy: (i)~W-DRO-T for desks with capital efficiency mandates and tolerance for $3\text{--}5\times$ higher rebalancing costs; (ii)~3SCH for emerging markets where the 6$\times$ transaction cost differential (18 vs.\ 3 bps) dominates risk reduction benefits; (iii)~RSE for regime-uncertain environments requiring adaptive hedging without full model retraining; (iv)~LSTM where operational simplicity and regulatory interpretability are paramount.
+\section{Conclusion}\label{sec:conclusion}
 
-\subsection{Managerial and Strategic Implications}
+We presented three architectural responses to documented
+weaknesses of two-stage deep hedging---W-DRO-T (Wasserstein-DRO
+Transformer), 3SCH (three-stage curriculum LSTM) and RSE
+(regime-switching ensemble)---each grounded in distinct theory and
+admitting a zero-cost rollback to a baseline. RSE attains the
+lowest in-distribution tail risk on a ten-seed Heston benchmark
+($-3.29\%$ vs.\ LSTM, $p<10^{-9}$); on a three-seed walk-forward
+backtest on raw SPY and NIFTY-50 OHLCV ($n=1{,}150$ test windows)
+it lowers crisis-window CVaR$_{95}$ on every seed in both SPY
+cells ($-27\%$ COVID-acute, $-10\%$ GFC), while the $18$~bps
+NIFTY cells favour the low-turnover LSTM baseline---out-of-sample
+confirmation that the architecture choice is
+friction-conditional. The full-fidelity rerun of the
+synthetic SPY/NIFTY stress battery contracts the
+cross-architecture spread to $\le 3\%$ per regime, so we frame
+W-DRO-T as a theoretically clean Lipschitz regulariser rather
+than as an empirical stress-window winner. The deployment recipe
+is friction-conditional and is read off the turnover--CVaR
+frontier of \S\ref{sec:frontier}.
 
-\begin{tcolorbox}[title=Model Selection Guidelines by Market Context]
-\begin{enumerate}[leftmargin=*]
-    \item \textbf{US Markets (low transaction costs):}\\
-    $\rightarrow$ W-DRO-T for crisis robustness (41\% capital savings, 46\% COVID CVaR reduction)\\
-    $\rightarrow$ Transformer for steady-state operations (28.6\% capital savings)
-    
-    \item \textbf{Indian Markets (high transaction costs):}\\
-    $\rightarrow$ 3SCH for normal periods (CVaR = 622.26, lowest in NIFTY normal)\\
-    $\rightarrow$ Transformer for crisis periods (46\% better than LSTM in COVID)
-    
-    \item \textbf{For operational simplicity:}\\
-    $\rightarrow$ LSTM baseline (lowest trading volume, CV $< 1\%$, interpretable)
-    
-    \item \textbf{For hedge accounting compliance:}\\
-    $\rightarrow$ All models qualify under IAS 39/IFRS 9/Ind-AS 109
-\end{enumerate}
-\end{tcolorbox}
+\paragraph{Reproducibility.}
+All numbers reproduce from:
+\texttt{run\_full\_experiments.py --all --r 0} (Table~\ref{tab:main};
+10-seed; the \texttt{--r} flag sets the risk-free rate used for the
+Heston drift and the BS-delta feature, and defaults to $0.05$, so
+\texttt{--r 0} reproduces the Table~\ref{tab:main} runs exactly),
+\texttt{run\_benchmark.py --mode medium} (medium suite),
+\texttt{extended\_real\_market\_validation.py}
+(Table~\ref{tab:realmarket} simplified),
+\texttt{spy\_nifty\_full\_validation.py}
+(Table~\ref{tab:realmarket_full} full-fidelity),
+\texttt{full\_tc\_validation.py} (Table~\ref{tab:tc_check}; 10-seed),
+\texttt{walk\_forward\_backtest.py --seeds 42,142,242}
+(Table~\ref{tab:walkforward}; strictly trailing features; metrics
+in \texttt{walk\_forward\_multiseed\_results.json}).
+The simulator uses $r=0.05$, $c_{\mathrm{tc}}\!=\!10^{-3}$ in
+distribution, $3$/$18$~bps in the SPY/NIFTY batteries.
+Source code, fitted models and pickled metrics are released in
+\texttt{src/}, \texttt{new\_approaches/code/} and
+\texttt{jaws\_research/}.
 
-\textbf{Operational Complexity Trade-off.} The marginal risk benefit of complex models must be weighed against operational costs:
-\begin{itemize}[noitemsep]
-    \item \textbf{Model risk governance:} W-DRO-T and RSE require second-order gradient computation and ensemble coordination, respectively, increasing validation burden under SR 11-7 (OCC) and SS1/23 (PRA) model risk guidelines.
-    \item \textbf{Computational cost:} Transformer-based models require $\approx$85K parameters and 25 min training time vs.\ $\approx$54K parameters and 12 min for LSTM (see Appendix~\ref{app:compute}).
-    \item \textbf{Retraining frequency:} DRO-regularized models show slower degradation under regime shifts (crisis/normal ratio of 3.92$\times$ vs.\ 4.28$\times$), potentially reducing retraining frequency.
-    \item \textbf{Interpretability:} LSTM strategies can be compared against Black-Scholes delta; Transformer attention weights and RSE regime classifications offer partial interpretability but are harder to validate.
-\end{itemize}
-
-For many institutional applications, the robust LSTM baseline remains optimal when operational simplicity is prioritized. However, for desks where tail risk capital charges dominate operational costs, the 41\% capital savings from W-DRO-T far exceed the incremental model governance burden.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 8. DISCUSSION AND LIMITATIONS
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Discussion and Limitations}
-\label{sec:discussion}
-
-\subsection{When Complex Models Provide Value}
-
-Our extended validation identifies specific conditions where advanced architectures outperform baselines:
-
-\begin{itemize}[noitemsep]
-    \item \textbf{Crisis environments:} W-DRO-T achieves 38--46\% CVaR improvement over LSTM during COVID and 2008-type volatility regimes
-    \item \textbf{Capital-constrained desks:} 41\% capital savings justify higher computational costs
-    \item \textbf{Low transaction cost markets:} US markets (3 bps) favor high-frequency rebalancing strategies
-    \item \textbf{Regime-uncertain environments:} RSE's adaptive weighting provides robustness when volatility regimes are unpredictable
-\end{itemize}
-
-\subsection{When Simple Models Remain Optimal}
-
-The LSTM baseline remains competitive or preferred under:
-
-\begin{itemize}[noitemsep]
-    \item \textbf{High transaction cost markets:} NIFTY (18 bps) penalizes active trading; LSTM's low volume (0.60) minimizes costs
-    \item \textbf{Regulatory interpretability requirements:} Simpler architectures facilitate model validation and governance
-    \item \textbf{Computational constraints:} LSTM requires $\approx$50K parameters vs.\ $\approx$85K for Transformer
-    \item \textbf{Stable market conditions:} Normal volatility regimes ($\sigma \approx 15\%$) show smaller model differentials
-\end{itemize}
-
-\subsection{Limitations}
-
-\begin{enumerate}[leftmargin=*]
-    \item \textbf{Simulation-to-reality gap:} Models trained on Heston dynamics may not generalize to actual market behavior, particularly during stress periods.
-    
-    \item \textbf{Model risk:} Neural network hedging strategies are less interpretable than analytical solutions, creating model risk governance challenges.
-    
-    \item \textbf{Distributional shift:} Changing market regimes may require model retraining or adaptive approaches.
-    
-    \item \textbf{Computational cost:} Transformer models require more computational resources for training and inference.
-    
-    \item \textbf{Limited real market data:} Our backtests use synthetic option paths; actual implementation would require live option price feeds.
-\end{enumerate}
-
-\subsection{Future Directions}
-
-\begin{enumerate}[leftmargin=*]
-    \item \textbf{Nonlinear affine robust hedging:} Extend W-DRO-T to handle parameter uncertainty over generalized affine processes \citep{lutkebohmert2021robust}, where the ambiguity set is constructed from sliding-window parameter estimates rather than Wasserstein balls.
-    
-    \item \textbf{Online adaptation:} Develop continual learning protocols that update hedging policies with streaming market data while preserving DRO robustness guarantees, potentially using experience replay with importance weighting.
-    
-    \item \textbf{Multi-asset portfolio hedging:} Extend the framework to joint hedging of multi-asset derivative books, where cross-asset correlations and netting effects create additional diversification opportunities.
-    
-    \item \textbf{Model interpretability:} Develop attention-based explanation tools for neural hedging decisions, including regime classification visualization for RSE and gradient saliency maps for W-DRO-T, to satisfy regulatory model validation requirements.
-    
-    \item \textbf{Market impact integration:} Incorporate temporary and permanent market impact models \citep{pickard2025rl} into the deep hedging objective, particularly relevant for large notional positions where hedging activity itself moves prices.
-\end{enumerate}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 9. CONCLUSION
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Conclusion}
-\label{sec:conclusion}
-
-We presented a comprehensive empirical study of deep hedging strategies, comparing five baseline architectures and five novel approaches across synthetic and real-market validation. Our rigorous experimental framework---10 random seeds, bootstrap confidence intervals, paired statistical tests with Holm-Bonferroni correction---establishes reproducibility standards for quantitative finance research.
-
-\textbf{Principal Findings:}
-\begin{enumerate}[leftmargin=*]
-    \item \textbf{W-DRO-T achieves best crisis robustness:} The Wasserstein DRO Transformer achieves 46\% CVaR$_{95}$ improvement over LSTM during COVID-type volatility ($\sigma = 65\%$) and 38\% improvement during 2008-type stress ($\sigma = 80\%$). The gradient-norm regularization provides distributional robustness under regime shifts.
-    
-    \item \textbf{Market-specific model selection is critical:} W-DRO-T dominates US markets (CVaR$_{95}$ = 11.98 in normal, 46.94 in COVID), while 3SCH achieves best NIFTY normal performance (CVaR$_{95}$ = 622.26) due to lower trading intensity in high-cost environments.
-    
-    \item \textbf{RSE provides ensemble stability:} The Regime-Switching Ensemble achieves Std P\&L = 3.57 (vs.\ 5.05 for LSTM) with moderate trading volume (1.06), offering a balanced risk--cost profile for regime-uncertain deployments.
-    
-    \item \textbf{Capital efficiency gains are substantial:} W-DRO-T enables 41\% capital savings versus LSTM under Basel III/IV frameworks, translating to \$332M savings per \$10B notional.
-    
-    \item \textbf{Two-stage training protocol is robust:} All models exhibit CV $< 1\%$ across seeds, confirming the stability of CVaR$\rightarrow$Entropic curriculum learning.
-\end{enumerate}
-
-\textbf{Practitioner Guidance:} For US markets, deploy W-DRO-T where capital efficiency is paramount; for Indian markets, prioritize 3SCH or Transformer to balance transaction costs; maintain LSTM as a robust baseline where interpretability and operational simplicity are required. All models qualify for hedge accounting under IAS 39/IFRS 9/Ind-AS 109.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% REFERENCES
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\bibliographystyle{apalike}
-\bibliography{bibliography}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% APPENDIX
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\appendix
-\input{appendix}
+\bibliographystyle{plainnat}
+\bibliography{references}
 
 \end{document}

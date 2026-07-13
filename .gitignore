@@ -82,3 +82,4 @@ new_experiments/results/
 # *_validation_results.json, experiment_manifest.json, seeds.json) ARE
 # committed as the provenance for the paper's tables — no rule above
 # matches them.
+.claude/

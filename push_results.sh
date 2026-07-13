@@ -35,7 +35,14 @@ git checkout -B "$BRANCH"
 shopt -s nullglob
 ARTIFACTS=( *_results.json *_bootstrap.json *_validation_results.json \
             walk_forward_ci_results.json experiment_manifest.json seeds.json )
-if compgen -G "results/logs/*.log" > /dev/null; then ARTIFACTS+=( results/logs/*.log ); fi
+# results written into (some gitignored) subdirs by the heavier scripts:
+for g in "new_approaches/results/results_full_"*.json \
+         "new_approaches/results/"*.json \
+         "jaws_research/outputs/tables/"*.csv \
+         "results/logs/"*.log; do
+  if compgen -G "$g" > /dev/null; then ARTIFACTS+=( $g ); fi
+done
+# -f because outputs/ subdirs are gitignored; the whitelist keeps this safe.
 git add -f "${ARTIFACTS[@]}" 2>/dev/null || true
 
 if git diff --cached --quiet; then
