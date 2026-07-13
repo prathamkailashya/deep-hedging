@@ -1,0 +1,36 @@
+   eps=0.00 seed=42 cvar95=13.033
+   eps=0.00 seed=142 cvar95=12.667
+   eps=0.00 seed=242 cvar95=16.106
+   eps=0.05 seed=42 cvar95=13.032
+   eps=0.05 seed=142 cvar95=12.666
+   eps=0.05 seed=242 cvar95=16.105
+   eps=0.10 seed=42 cvar95=13.031
+   eps=0.10 seed=142 cvar95=12.665
+   eps=0.10 seed=242 cvar95=16.104
+   eps=0.15 seed=42 cvar95=13.031
+   eps=0.15 seed=142 cvar95=12.665
+   eps=0.15 seed=242 cvar95=16.103
+   eps=0.20 seed=42 cvar95=13.030
+   eps=0.20 seed=142 cvar95=12.664
+   eps=0.20 seed=242 cvar95=16.102
+Traceback (most recent call last):
+  File "/content/deep-hedging/jaws_research/experiments/ablation.py", line 176, in <module>
+    ablation_dro_radius(seeds=seeds)
+  File "/content/deep-hedging/jaws_research/experiments/ablation.py", line 78, in ablation_dro_radius
+    pd.DataFrame(rows).to_csv(TABLES / f"ablation_{label}.csv", index=False)
+  File "/usr/local/lib/python3.12/dist-packages/pandas/util/_decorators.py", line 333, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/pandas/core/generic.py", line 3967, in to_csv
+    return DataFrameRenderer(formatter).to_csv(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/pandas/io/formats/format.py", line 1014, in to_csv
+    csv_formatter.save()
+  File "/usr/local/lib/python3.12/dist-packages/pandas/io/formats/csvs.py", line 251, in save
+    with get_handle(
+         ^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/pandas/io/common.py", line 749, in get_handle
+    check_parent_directory(str(handle))
+  File "/usr/local/lib/python3.12/dist-packages/pandas/io/common.py", line 616, in check_parent_directory
+    raise OSError(rf"Cannot save file into a non-existent directory: '{parent}'")
+OSError: Cannot save file into a non-existent directory: '/content/deep-hedging/jaws_research/outputs/tables'
