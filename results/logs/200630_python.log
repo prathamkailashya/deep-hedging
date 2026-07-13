@@ -1,0 +1,164 @@
+============================================================
+FULL DEEP HEDGING EXPERIMENTS (10 seeds per paper.tex)
+============================================================
+Models: ['LSTM', 'Transformer', 'RVSN', 'W-DRO-T', 'SAC-CVaR', 'RSE', '3SCH']
+Seeds: [42, 142, 242, 342, 442, 542, 642, 742, 842, 942]
+Training samples: 50000
+Risk-free rate r: 0.0
+Device: mps
+Checkpoint: /Users/prathamkailasiya/Desktop/Sem9 Desktop/Thesis/deep_hedging_new/new_approaches/results/checkpoint_full.pkl
+============================================================
+Progress: 70/70 runs completed
+
+============================================================
+Training LSTM
+============================================================
+LSTM:   0%|          | 0/10 [00:00<?, ?it/s]  Seed 42: Already completed, skipping
+  Seed 142: Already completed, skipping
+  Seed 242: Already completed, skipping
+  Seed 342: Already completed, skipping
+  Seed 442: Already completed, skipping
+  Seed 542: Already completed, skipping
+  Seed 642: Already completed, skipping
+  Seed 742: Already completed, skipping
+  Seed 842: Already completed, skipping
+  Seed 942: Already completed, skipping
+LSTM: 100%|██████████| 10/10 [00:00<00:00, 100102.72it/s]
+
+============================================================
+Training Transformer
+============================================================
+Transformer:   0%|          | 0/10 [00:00<?, ?it/s]  Seed 42: Already completed, skipping
+  Seed 142: Already completed, skipping
+  Seed 242: Already completed, skipping
+  Seed 342: Already completed, skipping
+  Seed 442: Already completed, skipping
+  Seed 542: Already completed, skipping
+  Seed 642: Already completed, skipping
+  Seed 742: Already completed, skipping
+  Seed 842: Already completed, skipping
+  Seed 942: Already completed, skipping
+Transformer: 100%|██████████| 10/10 [00:00<00:00, 320175.88it/s]
+
+============================================================
+Training RVSN
+============================================================
+RVSN:   0%|          | 0/10 [00:00<?, ?it/s]  Seed 42: Already completed, skipping
+  Seed 142: Already completed, skipping
+  Seed 242: Already completed, skipping
+  Seed 342: Already completed, skipping
+  Seed 442: Already completed, skipping
+  Seed 542: Already completed, skipping
+  Seed 642: Already completed, skipping
+  Seed 742: Already completed, skipping
+  Seed 842: Already completed, skipping
+  Seed 942: Already completed, skipping
+RVSN: 100%|██████████| 10/10 [00:00<00:00, 384798.53it/s]
+
+============================================================
+Training W-DRO-T
+============================================================
+W-DRO-T:   0%|          | 0/10 [00:00<?, ?it/s]  Seed 42: Already completed, skipping
+  Seed 142: Already completed, skipping
+  Seed 242: Already completed, skipping
+  Seed 342: Already completed, skipping
+  Seed 442: Already completed, skipping
+  Seed 542: Already completed, skipping
+  Seed 642: Already completed, skipping
+  Seed 742: Already completed, skipping
+  Seed 842: Already completed, skipping
+  Seed 942: Already completed, skipping
+W-DRO-T: 100%|██████████| 10/10 [00:00<00:00, 432402.47it/s]
+
+============================================================
+Training SAC-CVaR
+============================================================
+SAC-CVaR:   0%|          | 0/10 [00:00<?, ?it/s]  Seed 42: Already completed, skipping
+  Seed 142: Already completed, skipping
+  Seed 242: Already completed, skipping
+  Seed 342: Already completed, skipping
+  Seed 442: Already completed, skipping
+  Seed 542: Already completed, skipping
+  Seed 642: Already completed, skipping
+  Seed 742: Already completed, skipping
+  Seed 842: Already completed, skipping
+  Seed 942: Already completed, skipping
+SAC-CVaR: 100%|██████████| 10/10 [00:00<00:00, 455902.61it/s]
+
+============================================================
+Training RSE
+============================================================
+RSE:   0%|          | 0/10 [00:00<?, ?it/s]  Seed 42: Already completed, skipping
+  Seed 142: Already completed, skipping
+  Seed 242: Already completed, skipping
+  Seed 342: Already completed, skipping
+  Seed 442: Already completed, skipping
+  Seed 542: Already completed, skipping
+  Seed 642: Already completed, skipping
+  Seed 742: Already completed, skipping
+  Seed 842: Already completed, skipping
+  Seed 942: Already completed, skipping
+RSE: 100%|██████████| 10/10 [00:00<00:00, 367921.40it/s]
+
+============================================================
+Training 3SCH
+============================================================
+3SCH:   0%|          | 0/10 [00:00<?, ?it/s]  Seed 42: Already completed, skipping
+  Seed 142: Already completed, skipping
+  Seed 242: Already completed, skipping
+  Seed 342: Already completed, skipping
+  Seed 442: Already completed, skipping
+  Seed 542: Already completed, skipping
+  Seed 642: Already completed, skipping
+  Seed 742: Already completed, skipping
+  Seed 842: Already completed, skipping
+  Seed 942: Already completed, skipping
+3SCH: 100%|██████████| 10/10 [00:00<00:00, 346636.69it/s]
+
+============================================================
+RESULTS SUMMARY
+============================================================
+
+LSTM (10 seeds):
+  CVaR95: 3.2151 ± 0.0178
+  Std P&L: 0.4491 ± 0.0065
+  Entropic: 2.3790
+  Avg Time: 273.3s
+
+Transformer (10 seeds):
+  CVaR95: 3.2340 ± 0.0297
+  Std P&L: 0.4502 ± 0.0085
+  Entropic: 2.3804
+  Avg Time: 7533.7s
+
+RSE (10 seeds):
+  CVaR95: 3.1094 ± 0.0095
+  Std P&L: 0.4561 ± 0.0067
+  Entropic: 2.3759
+  Avg Time: 923.8s
+
+3SCH (10 seeds):
+  CVaR95: 3.2192 ± 0.0223
+  Std P&L: 0.4533 ± 0.0090
+  Entropic: 2.3806
+  Avg Time: 294.8s
+
+RVSN (10 seeds):
+  CVaR95: 0.4434 ± 0.2650
+  Std P&L: 2.1580 ± 0.0636
+  Entropic: -1.4140
+  Avg Time: 1791.3s
+
+SAC-CVaR (10 seeds):
+  CVaR95: 14.9328 ± 2.8175
+  Std P&L: 4.6564 ± 1.0382
+  Entropic: 19.2215
+  Avg Time: 485.6s
+
+W-DRO-T (10 seeds):
+  CVaR95: 3.2269 ± 0.0242
+  Std P&L: 0.4496 ± 0.0087
+  Entropic: 2.3795
+  Avg Time: 7119.1s
+
+Results saved to /Users/prathamkailasiya/Desktop/Sem9 Desktop/Thesis/deep_hedging_new/new_approaches/results/results_full_20260713_200631.pkl

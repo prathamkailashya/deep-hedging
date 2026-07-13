@@ -1,0 +1,8 @@
+[sanity] torch 2.8.0  device=mps
+[sanity] LSTM         out=(8, 30) finite=True  OK
+[sanity] RSE          out=(8, 30) finite=True  OK
+[sanity] RSE_rich     out=(8, 30) finite=True  OK
+[sanity] WDROT        out=(8, 30) finite=True  OK
+[sanity] WDROT_adapt  out=(8, 30) finite=True  OK
+[sanity] causality test: 2 passed in 1.22s
+[sanity] ALL OK

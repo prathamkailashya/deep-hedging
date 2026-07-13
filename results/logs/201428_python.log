@@ -1,0 +1,454 @@
+[xmarket] dev=mps seeds=[42, 142, 242] band_k=0.6
+=== train SPY -> deploy NIFTY (eval tc=0.0018) ===
+============================================================
+Stage 1: CVaR Pretraining
+============================================================
+  Starting epoch 1 with 12 batches...
+  Epoch 1/30: CVaR = 16.9946
+  Epoch 10/30: CVaR = 9.9447, Val: 8.8239
+  Epoch 20/30: CVaR = 8.9375, Val: 8.3677
+  Epoch 30/30: CVaR = 8.4592, Val: 7.9154
+============================================================
+Stage 3: Entropic Fine-tuning
+============================================================
+  Epoch 1/20: Loss = 6.0737, Entropic = 6.0717
+  Epoch 10/20: Loss = 5.7542, Entropic = 5.7524
+  Epoch 20/20: Loss = 5.8211, Entropic = 5.8192
+============================================================
+Training Complete!
+============================================================
+  seed 42: trained LSTM in 9s
+============================================================
+Stage 1: CVaR Pretraining
+============================================================
+  Starting epoch 1 with 12 batches...
+  Epoch 1/20: CVaR = 16.9946
+  Epoch 10/20: CVaR = 9.9447, Val: 8.8239
+  Epoch 20/20: CVaR = 8.9375, Val: 8.3677
+============================================================
+Stage 2: Mixed Loss (CVaR → Entropic transition)
+============================================================
+  Epoch 1/10: Loss = 8.4166, α = 0.80
+  Epoch 5/10: Loss = 7.3544, α = 0.53
+  Epoch 10/10: Loss = 6.5374, α = 0.20
+============================================================
+Stage 3: Entropic Fine-tuning
+============================================================
+  Epoch 1/15: Loss = 6.1778, Entropic = 6.1758
+  Epoch 10/15: Loss = 5.8180, Entropic = 5.8161
+============================================================
+Training Complete!
+============================================================
+  seed 42: trained 3SCH in 7s
+Stage 1: CVaR Pretraining
+Pre-training base models...
+  Training lstm...
+    lstm pretrained (loss: 7.8115)
+  Training transformer...
+    transformer pretrained (loss: 8.9924)
+  Training signature...
+    signature pretrained (loss: 8.0350)
+Training gating network...
+  Epoch 10/25: Loss = 7.8281
+  Epoch 20/25: Loss = 7.7976
+  seed 42: trained RSE in 79s
+Phase 1: CVaR Pretraining
+  Starting epoch 1 with 12 batches...
+  Epoch 1/50: CVaR Loss = 16.6470
+  Epoch 10/50: CVaR Loss = 11.4287
+  Epoch 20/50: CVaR Loss = 9.6279
+  Epoch 30/50: CVaR Loss = 8.8789
+  Epoch 40/50: CVaR Loss = 7.9536
+  Epoch 50/50: CVaR Loss = 7.6970
+Phase 2: Entropic + DRO (epsilon annealing)
+  Epoch 10: Loss = 5.0790, DRO = 0.0006, ε = 0.030
+  Epoch 20: Loss = 5.2279, DRO = 0.0013, ε = 0.063
+  Epoch 30: Loss = 4.9160, DRO = 0.0025, ε = 0.097
+  seed 42: trained WDROT in 1670s
+    covid_2020/LSTM[42]: raw CVaR=1211.60/t0.86  band CVaR=1233.05/t0.60
+    covid_2020/3SCH[42]: raw CVaR=1090.94/t0.86  band CVaR=1119.53/t0.62
+    covid_2020/RSE[42]: raw CVaR=942.19/t0.67  band CVaR=984.23/t0.41
+    covid_2020/WDROT[42]: raw CVaR=2097.32/t0.34  band CVaR=2146.25/t0.23
+    gfc_2008/LSTM[42]: raw CVaR=630.05/t1.09  band CVaR=632.79/t0.78
+    gfc_2008/3SCH[42]: raw CVaR=601.62/t1.03  band CVaR=602.70/t0.73
+    gfc_2008/RSE[42]: raw CVaR=477.47/t1.11  band CVaR=496.50/t0.75
+    gfc_2008/WDROT[42]: raw CVaR=676.19/t0.85  band CVaR=685.76/t0.64
+============================================================
+Stage 1: CVaR Pretraining
+============================================================
+  Starting epoch 1 with 12 batches...
+  Epoch 1/30: CVaR = 31.4823
+  Epoch 10/30: CVaR = 10.6267, Val: 8.3812
+  Epoch 20/30: CVaR = 9.1904, Val: 9.1129
+  Epoch 30/30: CVaR = 8.9777, Val: 8.4067
+============================================================
+Stage 3: Entropic Fine-tuning
+============================================================
+  Epoch 1/20: Loss = 8.7502, Entropic = 8.7460
+  Epoch 10/20: Loss = 7.4635, Entropic = 7.4600
+  Epoch 20/20: Loss = 7.3405, Entropic = 7.3373
+============================================================
+Training Complete!
+============================================================
+  seed 142: trained LSTM in 8s
+============================================================
+Stage 1: CVaR Pretraining
+============================================================
+  Starting epoch 1 with 12 batches...
+  Epoch 1/20: CVaR = 31.4823
+  Epoch 10/20: CVaR = 10.6267, Val: 8.3812
+  Epoch 20/20: CVaR = 9.1904, Val: 9.1129
+============================================================
+Stage 2: Mixed Loss (CVaR → Entropic transition)
+============================================================
+  Epoch 1/10: Loss = 10.9806, α = 0.80
+  Epoch 5/10: Loss = 8.5223, α = 0.53
+  Epoch 10/10: Loss = 7.6487, α = 0.20
+============================================================
+Stage 3: Entropic Fine-tuning
+============================================================
+  Epoch 1/15: Loss = 7.3344, Entropic = 7.3316
+  Epoch 10/15: Loss = 6.5550, Entropic = 6.5525
+============================================================
+Training Complete!
+============================================================
+  seed 142: trained 3SCH in 8s
+Stage 1: CVaR Pretraining
+Pre-training base models...
+  Training lstm...
+    lstm pretrained (loss: 7.7383)
+  Training transformer...
+    transformer pretrained (loss: 9.3595)
+  Training signature...
+    signature pretrained (loss: 8.0701)
+Training gating network...
+  Epoch 10/25: Loss = 7.7174
+  Epoch 20/25: Loss = 7.6910
+  seed 142: trained RSE in 86s
+Phase 1: CVaR Pretraining
+  Starting epoch 1 with 12 batches...
+  Epoch 1/50: CVaR Loss = 25.1255
+  Epoch 10/50: CVaR Loss = 12.8787
+  Epoch 20/50: CVaR Loss = 12.0161
+  Epoch 30/50: CVaR Loss = 8.9804
+  Epoch 40/50: CVaR Loss = 8.5426
+  Epoch 50/50: CVaR Loss = 8.3069
+Phase 2: Entropic + DRO (epsilon annealing)
+  Epoch 10: Loss = 5.5597, DRO = 0.0005, ε = 0.030
+  Epoch 20: Loss = 5.3163, DRO = 0.0012, ε = 0.063
+  Epoch 30: Loss = 5.2992, DRO = 0.0017, ε = 0.097
+  seed 142: trained WDROT in 1982s
+    covid_2020/LSTM[142]: raw CVaR=1332.21/t1.21  band CVaR=1296.36/t0.90
+    covid_2020/3SCH[142]: raw CVaR=1561.45/t1.16  band CVaR=1560.53/t0.88
+    covid_2020/RSE[142]: raw CVaR=1103.46/t0.63  band CVaR=1157.18/t0.37
+    covid_2020/WDROT[142]: raw CVaR=1641.73/t0.49  band CVaR=1654.82/t0.35
+    gfc_2008/LSTM[142]: raw CVaR=631.22/t1.18  band CVaR=644.79/t0.82
+    gfc_2008/3SCH[142]: raw CVaR=723.64/t1.09  band CVaR=733.45/t0.75
+    gfc_2008/RSE[142]: raw CVaR=548.77/t1.01  band CVaR=560.79/t0.66
+    gfc_2008/WDROT[142]: raw CVaR=552.43/t0.90  band CVaR=563.90/t0.67
+============================================================
+Stage 1: CVaR Pretraining
+============================================================
+  Starting epoch 1 with 12 batches...
+  Epoch 1/30: CVaR = 21.5808
+  Epoch 10/30: CVaR = 11.6719, Val: 9.5116
+  Epoch 20/30: CVaR = 9.9411, Val: 9.2370
+  Epoch 30/30: CVaR = 8.8276, Val: 8.1547
+============================================================
+Stage 3: Entropic Fine-tuning
+============================================================
+  Epoch 1/20: Loss = 6.1715, Entropic = 6.1694
+  Epoch 10/20: Loss = 6.0266, Entropic = 6.0246
+  Epoch 20/20: Loss = 6.2202, Entropic = 6.2182
+============================================================
+Training Complete!
+============================================================
+  seed 242: trained LSTM in 11s
+============================================================
+Stage 1: CVaR Pretraining
+============================================================
+  Starting epoch 1 with 12 batches...
+  Epoch 1/20: CVaR = 21.5808
+  Epoch 10/20: CVaR = 11.6719, Val: 9.5116
+  Epoch 20/20: CVaR = 9.9411, Val: 9.2370
+============================================================
+Stage 2: Mixed Loss (CVaR → Entropic transition)
+============================================================
+  Epoch 1/10: Loss = 9.2336, α = 0.80
+  Epoch 5/10: Loss = 8.2523, α = 0.53
+  Epoch 10/10: Loss = 6.9468, α = 0.20
+============================================================
+Stage 3: Entropic Fine-tuning
+============================================================
+  Epoch 1/15: Loss = 6.8894, Entropic = 6.8871
+  Epoch 10/15: Loss = 6.1563, Entropic = 6.1542
+============================================================
+Training Complete!
+============================================================
+  seed 242: trained 3SCH in 10s
+Stage 1: CVaR Pretraining
+Pre-training base models...
+  Training lstm...
+    lstm pretrained (loss: 8.2951)
+  Training transformer...
+    transformer pretrained (loss: 9.7416)
+  Training signature...
+    signature pretrained (loss: 7.8325)
+Training gating network...
+  Epoch 10/25: Loss = 8.1649
+  Epoch 20/25: Loss = 7.9155
+  seed 242: trained RSE in 92s
+Phase 1: CVaR Pretraining
+  Starting epoch 1 with 12 batches...
+  Epoch 1/50: CVaR Loss = 20.6002
+  Epoch 10/50: CVaR Loss = 11.2956
+  Epoch 20/50: CVaR Loss = 9.8257
+  Epoch 30/50: CVaR Loss = 8.5729
+  Epoch 40/50: CVaR Loss = 8.0634
+  Epoch 50/50: CVaR Loss = 7.4776
+Phase 2: Entropic + DRO (epsilon annealing)
+  Epoch 10: Loss = 5.1205, DRO = 0.0006, ε = 0.030
+  Epoch 20: Loss = 5.0777, DRO = 0.0015, ε = 0.063
+  Epoch 30: Loss = 5.1227, DRO = 0.0021, ε = 0.097
+  seed 242: trained WDROT in 1574s
+    covid_2020/LSTM[242]: raw CVaR=1637.20/t1.00  band CVaR=1709.06/t0.79
+    covid_2020/3SCH[242]: raw CVaR=1430.86/t0.98  band CVaR=1494.79/t0.80
+    covid_2020/RSE[242]: raw CVaR=1068.38/t0.81  band CVaR=1117.42/t0.51
+    covid_2020/WDROT[242]: raw CVaR=1870.15/t0.35  band CVaR=1933.02/t0.24
+    gfc_2008/LSTM[242]: raw CVaR=713.86/t0.91  band CVaR=710.50/t0.64
+    gfc_2008/3SCH[242]: raw CVaR=655.97/t0.98  band CVaR=656.48/t0.69
+    gfc_2008/RSE[242]: raw CVaR=540.80/t1.17  band CVaR=555.69/t0.79
+    gfc_2008/WDROT[242]: raw CVaR=623.24/t0.87  band CVaR=642.66/t0.65
+=== train NIFTY -> deploy SPY (eval tc=0.0003) ===
+============================================================
+Stage 1: CVaR Pretraining
+============================================================
+  Starting epoch 1 with 11 batches...
+  Epoch 1/30: CVaR = 843.7040
+  Epoch 10/30: CVaR = 413.3706, Val: 367.6843
+  Epoch 20/30: CVaR = 376.1635, Val: 354.0507
+  Epoch 30/30: CVaR = 382.3362, Val: 360.8966
+============================================================
+Stage 3: Entropic Fine-tuning
+============================================================
+  Epoch 1/20: Loss = 394.6884, Entropic = 394.6863
+  Epoch 10/20: Loss = 373.5603, Entropic = 373.5583
+  Epoch 20/20: Loss = 388.9133, Entropic = 388.9113
+============================================================
+Training Complete!
+============================================================
+  seed 42: trained LSTM in 11s
+============================================================
+Stage 1: CVaR Pretraining
+============================================================
+  Starting epoch 1 with 11 batches...
+  Epoch 1/20: CVaR = 843.7040
+  Epoch 10/20: CVaR = 413.3706, Val: 367.6843
+  Epoch 20/20: CVaR = 376.1635, Val: 354.0507
+============================================================
+Stage 2: Mixed Loss (CVaR → Entropic transition)
+============================================================
+  Epoch 1/10: Loss = 392.9647, α = 0.80
+  Epoch 5/10: Loss = 375.6560, α = 0.53
+  Epoch 10/10: Loss = 405.6450, α = 0.20
+============================================================
+Stage 3: Entropic Fine-tuning
+============================================================
+  Epoch 1/15: Loss = 386.3713, Entropic = 386.3694
+  Epoch 10/15: Loss = 362.0368, Entropic = 362.0350
+============================================================
+Training Complete!
+============================================================
+  seed 42: trained 3SCH in 8s
+Stage 1: CVaR Pretraining
+Pre-training base models...
+  Training lstm...
+    lstm pretrained (loss: 344.3540)
+  Training transformer...
+    transformer pretrained (loss: 402.6668)
+  Training signature...
+    signature pretrained (loss: 359.1039)
+Training gating network...
+  Epoch 10/25: Loss = 343.4199
+  Epoch 20/25: Loss = 340.3832
+  seed 42: trained RSE in 81s
+Phase 1: CVaR Pretraining
+  Starting epoch 1 with 11 batches...
+  Epoch 1/50: CVaR Loss = 856.8290
+  Epoch 10/50: CVaR Loss = 458.4606
+  Epoch 20/50: CVaR Loss = 401.0692
+  Epoch 30/50: CVaR Loss = 396.6740
+  Epoch 40/50: CVaR Loss = 362.2430
+  Epoch 50/50: CVaR Loss = 347.2653
+Phase 2: Entropic + DRO (epsilon annealing)
+  Epoch 10: Loss = 357.5660, DRO = 0.0110, ε = 0.030
+  Epoch 20: Loss = 346.4717, DRO = 0.0268, ε = 0.063
+  Epoch 30: Loss = 346.2326, DRO = 0.0393, ε = 0.097
+  seed 42: trained WDROT in 1936s
+    covid_2020/LSTM[42]: raw CVaR=34.34/t0.62  band CVaR=35.54/t0.49
+    covid_2020/3SCH[42]: raw CVaR=36.10/t0.67  band CVaR=37.14/t0.53
+    covid_2020/RSE[42]: raw CVaR=36.21/t1.04  band CVaR=36.37/t0.78
+    covid_2020/WDROT[42]: raw CVaR=34.13/t0.77  band CVaR=34.97/t0.64
+    post_covid_2021/LSTM[42]: raw CVaR=10.70/t0.59  band CVaR=11.02/t0.43
+    post_covid_2021/3SCH[42]: raw CVaR=10.02/t0.60  band CVaR=10.37/t0.43
+    post_covid_2021/RSE[42]: raw CVaR=10.09/t0.80  band CVaR=10.58/t0.53
+    post_covid_2021/WDROT[42]: raw CVaR=10.71/t0.78  band CVaR=10.85/t0.62
+    gfc_2008/LSTM[42]: raw CVaR=12.07/t0.62  band CVaR=11.86/t0.48
+    gfc_2008/3SCH[42]: raw CVaR=13.13/t0.64  band CVaR=12.85/t0.49
+    gfc_2008/RSE[42]: raw CVaR=14.01/t0.94  band CVaR=13.90/t0.70
+    gfc_2008/WDROT[42]: raw CVaR=9.38/t0.82  band CVaR=9.29/t0.66
+============================================================
+Stage 1: CVaR Pretraining
+============================================================
+  Starting epoch 1 with 11 batches...
+  Epoch 1/30: CVaR = 1056.6774
+  Epoch 10/30: CVaR = 469.7031, Val: 417.7861
+  Epoch 20/30: CVaR = 398.7297, Val: 359.3817
+  Epoch 30/30: CVaR = 404.6764, Val: 370.0614
+============================================================
+Stage 3: Entropic Fine-tuning
+============================================================
+  Epoch 1/20: Loss = 418.0103, Entropic = 418.0077
+  Epoch 10/20: Loss = 408.4991, Entropic = 408.4967
+  Epoch 20/20: Loss = 393.3692, Entropic = 393.3669
+============================================================
+Training Complete!
+============================================================
+  seed 142: trained LSTM in 12s
+============================================================
+Stage 1: CVaR Pretraining
+============================================================
+  Starting epoch 1 with 11 batches...
+  Epoch 1/20: CVaR = 1056.6774
+  Epoch 10/20: CVaR = 469.7031, Val: 417.7861
+  Epoch 20/20: CVaR = 398.7297, Val: 359.3817
+============================================================
+Stage 2: Mixed Loss (CVaR → Entropic transition)
+============================================================
+  Epoch 1/10: Loss = 436.9810, α = 0.80
+  Epoch 5/10: Loss = 389.4343, α = 0.53
+  Epoch 10/10: Loss = 398.0580, α = 0.20
+============================================================
+Stage 3: Entropic Fine-tuning
+============================================================
+  Epoch 1/15: Loss = 397.2059, Entropic = 397.2038
+  Epoch 10/15: Loss = 391.9050, Entropic = 391.9029
+============================================================
+Training Complete!
+============================================================
+  seed 142: trained 3SCH in 9s
+Stage 1: CVaR Pretraining
+Pre-training base models...
+  Training lstm...
+    lstm pretrained (loss: 346.3085)
+  Training transformer...
+    transformer pretrained (loss: 391.3959)
+  Training signature...
+    signature pretrained (loss: 363.9556)
+Training gating network...
+  Epoch 10/25: Loss = 338.0156
+  Epoch 20/25: Loss = 337.0801
+  seed 142: trained RSE in 79s
+Phase 1: CVaR Pretraining
+  Starting epoch 1 with 11 batches...
+  Epoch 1/50: CVaR Loss = 1172.8207
+  Epoch 10/50: CVaR Loss = 500.5976
+  Epoch 20/50: CVaR Loss = 454.3828
+  Epoch 30/50: CVaR Loss = 385.8037
+  Epoch 40/50: CVaR Loss = 378.8766
+  Epoch 50/50: CVaR Loss = 364.1673
+Phase 2: Entropic + DRO (epsilon annealing)
+  Epoch 10: Loss = 360.0821, DRO = 0.0121, ε = 0.030
+  Epoch 20: Loss = 369.2233, DRO = 0.0252, ε = 0.063
+  Epoch 30: Loss = 359.8121, DRO = 0.0345, ε = 0.097
+  seed 142: trained WDROT in 1678s
+    covid_2020/LSTM[142]: raw CVaR=40.11/t0.75  band CVaR=40.82/t0.61
+    covid_2020/3SCH[142]: raw CVaR=42.84/t0.72  band CVaR=44.20/t0.59
+    covid_2020/RSE[142]: raw CVaR=45.46/t1.30  band CVaR=47.65/t1.09
+    covid_2020/WDROT[142]: raw CVaR=29.32/t0.80  band CVaR=29.36/t0.64
+    post_covid_2021/LSTM[142]: raw CVaR=10.11/t0.74  band CVaR=10.65/t0.51
+    post_covid_2021/3SCH[142]: raw CVaR=10.09/t0.69  band CVaR=10.55/t0.46
+    post_covid_2021/RSE[142]: raw CVaR=10.38/t0.87  band CVaR=10.94/t0.58
+    post_covid_2021/WDROT[142]: raw CVaR=11.02/t0.78  band CVaR=11.14/t0.60
+    gfc_2008/LSTM[142]: raw CVaR=12.37/t0.75  band CVaR=12.21/t0.55
+    gfc_2008/3SCH[142]: raw CVaR=13.29/t0.71  band CVaR=13.13/t0.50
+    gfc_2008/RSE[142]: raw CVaR=16.17/t1.09  band CVaR=16.26/t0.84
+    gfc_2008/WDROT[142]: raw CVaR=9.71/t0.82  band CVaR=9.64/t0.64
+============================================================
+Stage 1: CVaR Pretraining
+============================================================
+  Starting epoch 1 with 11 batches...
+  Epoch 1/30: CVaR = 1057.4066
+  Epoch 10/30: CVaR = 452.8049, Val: 410.6607
+  Epoch 20/30: CVaR = 403.8857, Val: 405.4254
+  Epoch 30/30: CVaR = 406.6294, Val: 355.2983
+============================================================
+Stage 3: Entropic Fine-tuning
+============================================================
+  Epoch 1/20: Loss = 376.5553, Entropic = 376.5533
+  Epoch 10/20: Loss = 375.5072, Entropic = 375.5053
+  Epoch 20/20: Loss = 379.0080, Entropic = 379.0062
+============================================================
+Training Complete!
+============================================================
+  seed 242: trained LSTM in 9s
+============================================================
+Stage 1: CVaR Pretraining
+============================================================
+  Starting epoch 1 with 11 batches...
+  Epoch 1/20: CVaR = 1057.4066
+  Epoch 10/20: CVaR = 452.8049, Val: 410.6607
+  Epoch 20/20: CVaR = 403.8857, Val: 405.4254
+============================================================
+Stage 2: Mixed Loss (CVaR → Entropic transition)
+============================================================
+  Epoch 1/10: Loss = 396.9686, α = 0.80
+  Epoch 5/10: Loss = 393.8375, α = 0.53
+  Epoch 10/10: Loss = 381.2939, α = 0.20
+============================================================
+Stage 3: Entropic Fine-tuning
+============================================================
+  Epoch 1/15: Loss = 380.4183, Entropic = 380.4163
+  Epoch 10/15: Loss = 391.3437, Entropic = 391.3418
+============================================================
+Training Complete!
+============================================================
+  seed 242: trained 3SCH in 9s
+Stage 1: CVaR Pretraining
+Pre-training base models...
+  Training lstm...
+    lstm pretrained (loss: 361.6385)
+  Training transformer...
+    transformer pretrained (loss: 383.0933)
+  Training signature...
+    signature pretrained (loss: 359.3553)
+Training gating network...
+  Epoch 10/25: Loss = 345.8018
+  Epoch 20/25: Loss = 345.3848
+  seed 242: trained RSE in 96s
+Phase 1: CVaR Pretraining
+  Starting epoch 1 with 11 batches...
+  Epoch 1/50: CVaR Loss = 833.1964
+  Epoch 10/50: CVaR Loss = 512.6095
+  Epoch 20/50: CVaR Loss = 416.4465
+  Epoch 30/50: CVaR Loss = 378.4168
+  Epoch 40/50: CVaR Loss = 355.2026
+  Epoch 50/50: CVaR Loss = 353.7293
+Phase 2: Entropic + DRO (epsilon annealing)
+  Epoch 10: Loss = 362.7939, DRO = 0.0120, ε = 0.030
+  Epoch 20: Loss = 356.1220, DRO = 0.0190, ε = 0.063
+  Epoch 30: Loss = 351.2720, DRO = 0.0375, ε = 0.097
+  seed 242: trained WDROT in 1914s
+    covid_2020/LSTM[242]: raw CVaR=43.81/t0.78  band CVaR=45.04/t0.61
+    covid_2020/3SCH[242]: raw CVaR=41.10/t0.78  band CVaR=41.40/t0.59
+    covid_2020/RSE[242]: raw CVaR=41.62/t1.24  band CVaR=42.21/t0.96
+    covid_2020/WDROT[242]: raw CVaR=28.83/t0.80  band CVaR=29.24/t0.68
+    post_covid_2021/LSTM[242]: raw CVaR=9.60/t0.70  band CVaR=9.91/t0.48
+    post_covid_2021/3SCH[242]: raw CVaR=10.49/t0.72  band CVaR=10.86/t0.48
+    post_covid_2021/RSE[242]: raw CVaR=10.25/t0.88  band CVaR=10.81/t0.57
+    post_covid_2021/WDROT[242]: raw CVaR=11.03/t0.72  band CVaR=11.07/t0.53
+    gfc_2008/LSTM[242]: raw CVaR=14.46/t0.75  band CVaR=14.31/t0.54
+    gfc_2008/3SCH[242]: raw CVaR=13.72/t0.76  band CVaR=13.66/t0.54
+    gfc_2008/RSE[242]: raw CVaR=15.70/t1.05  band CVaR=15.74/t0.79
+    gfc_2008/WDROT[242]: raw CVaR=8.91/t0.80  band CVaR=8.96/t0.63
+[xmarket] done
